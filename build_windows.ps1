@@ -1,9 +1,13 @@
 param(
     [ValidateSet("onedir", "onefile", "both")]
-    [string]$Mode = "onedir"
+    [string]$Mode = "onedir",
+    [switch]$Clean
 )
 
 $ErrorActionPreference = "Stop"
+
+# Python minor versions PyInstaller is known to support for this project.
+$SupportedMinors = @(10, 11, 12, 13)
 
 function Write-Step {
     param([string]$Message)
@@ -37,7 +41,7 @@ function Test-PythonForBuild {
         if ($major -ne 3) {
             return $false
         }
-        if ($minor -lt 10 -or $minor -gt 13) {
+        if ($SupportedMinors -notcontains $minor) {
             return $false
         }
         return $true
@@ -51,27 +55,34 @@ function Find-BasePython {
         return $env:HUNTOVERLAY_PYTHON
     }
 
+    # Prefer newer interpreters first.
+    $preferred = $SupportedMinors | Sort-Object -Descending
+
     $pyLauncher = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($pyLauncher) {
-        try {
-            $candidate = (& py -3.12 -c "import sys; print(sys.executable)").Trim()
-            if (Test-PythonForBuild $candidate) {
-                return $candidate
+        foreach ($minor in $preferred) {
+            try {
+                $candidate = (& py "-3.$minor" -c "import sys; print(sys.executable)").Trim()
+                if (Test-PythonForBuild $candidate) {
+                    return $candidate
+                }
+            } catch {
+                # Version not installed under the launcher; try the next one.
             }
-        } catch {
-            # Continue to other discovery paths.
         }
     }
 
     $miseRoot = Join-Path $env:LOCALAPPDATA "mise\installs\python"
     if (Test-Path $miseRoot) {
-        $miseCandidate = Get-ChildItem $miseRoot -Directory -Filter "3.12*" |
-            Sort-Object Name -Descending |
-            ForEach-Object { Join-Path $_.FullName "python.exe" } |
-            Where-Object { Test-PythonForBuild $_ } |
-            Select-Object -First 1
-        if ($miseCandidate) {
-            return $miseCandidate
+        foreach ($minor in $preferred) {
+            $miseCandidate = Get-ChildItem $miseRoot -Directory -Filter "3.$minor*" |
+                Sort-Object Name -Descending |
+                ForEach-Object { Join-Path $_.FullName "python.exe" } |
+                Where-Object { Test-PythonForBuild $_ } |
+                Select-Object -First 1
+            if ($miseCandidate) {
+                return $miseCandidate
+            }
         }
     }
 
@@ -80,7 +91,7 @@ function Find-BasePython {
         return $pythonCmd.Source
     }
 
-    Fail "未找到适合打包的 Python。建议安装 Python 3.12，或设置 HUNTOVERLAY_PYTHON 指向 python.exe。"
+    Fail "未找到适合打包的 Python（需要 3.10 - 3.13）。建议安装 Python 3.12，或设置 HUNTOVERLAY_PYTHON 指向 python.exe。"
 }
 
 if ($env:OS -ne "Windows_NT") {
@@ -117,15 +128,28 @@ if (-not (Test-PythonForBuild $VenvPython)) {
 
 Write-Step "安装/更新打包依赖"
 & $VenvPython -m pip install --upgrade pip
-& $VenvPython -m pip install PySide6 pyinstaller
+if ($LASTEXITCODE -ne 0) { Fail "升级 pip 失败（退出码 $LASTEXITCODE）。请检查网络或代理设置。" }
+& $VenvPython -m pip install "PySide6>=6.6,<6.9" "pyinstaller>=6.3,<7"
+if ($LASTEXITCODE -ne 0) { Fail "安装 PySide6 / PyInstaller 失败（退出码 $LASTEXITCODE）。请检查网络或代理设置。" }
 
 Write-Step "确认 PyInstaller"
 & $VenvPython -m PyInstaller --version
 
+if ($Clean) {
+    Write-Step "清理旧的构建缓存"
+    foreach ($dir in @("build", "dist")) {
+        $target = Join-Path $Root $dir
+        if (Test-Path $target) {
+            Remove-Item $target -Recurse -Force
+            Write-Host "已删除 $dir\"
+        }
+    }
+    Get-ChildItem $Root -Filter "*.spec" | Remove-Item -Force -ErrorAction SilentlyContinue
+}
+
 $commonArgs = @(
     "--noconfirm",
     "--windowed",
-    "--name", "HuntOverlay",
     "--icon", "myicon.ico",
     "--add-data", "data.json;.",
     "--add-data", "poiData.json;.",
@@ -136,9 +160,13 @@ $commonArgs = @(
 function Invoke-Build {
     param([ValidateSet("onedir", "onefile")][string]$BuildMode)
 
-    Write-Step "开始构建 $BuildMode"
+    # Distinct names so onedir and onefile products never collide under dist\.
+    $name = if ($BuildMode -eq "onefile") { "HuntOverlay-portable" } else { "HuntOverlay" }
     $modeArg = if ($BuildMode -eq "onefile") { "--onefile" } else { "--onedir" }
-    & $VenvPython -m PyInstaller $modeArg @commonArgs
+
+    Write-Step "开始构建 $BuildMode（$name）"
+    & $VenvPython -m PyInstaller $modeArg "--name" $name @commonArgs
+    if ($LASTEXITCODE -ne 0) { Fail "PyInstaller 构建失败（$BuildMode，退出码 $LASTEXITCODE）。" }
 }
 
 if ($Mode -eq "both") {
@@ -152,10 +180,10 @@ Write-Step "构建产物"
 if ($Mode -eq "onedir") {
     Write-Host "目录版：dist\HuntOverlay\HuntOverlay.exe" -ForegroundColor Green
 } elseif ($Mode -eq "onefile") {
-    Write-Host "单文件版：dist\HuntOverlay.exe" -ForegroundColor Green
+    Write-Host "单文件版：dist\HuntOverlay-portable.exe" -ForegroundColor Green
 } else {
     Write-Host "目录版：dist\HuntOverlay\HuntOverlay.exe" -ForegroundColor Green
-    Write-Host "单文件版：dist\HuntOverlay.exe" -ForegroundColor Green
+    Write-Host "单文件版：dist\HuntOverlay-portable.exe" -ForegroundColor Green
 }
 
 Write-Host ""

@@ -35,6 +35,36 @@ from PySide6 import QtCore, QtGui, QtWidgets
 MAPS = ["Stillwater Bayou", "Lawson Delta", "DeSalle", "Mammon's Gulch"]
 
 CONFIG_VERSION = "1.2.0"
+APP_TITLE = "猎杀对决地图覆盖工具"
+
+CATEGORY_LABELS_ZH = {
+    "possible_xp": "潜在经验点",
+    "spawns": "出生点",
+    "armories": "军械库",
+    "towers": "狩猎塔",
+    "big_towers": "瞭望塔",
+    "workbenches": "工作台",
+    "wild_targets": "野外目标",
+    "brutes": "重型怪物",
+    "beetles": "甲虫",
+    "easter_eggs": "彩蛋",
+    "melee_weapons": "近战武器",
+    "cash_registers": "收银机",
+}
+
+ACTION_LABELS_ZH = {
+    "toggle_master": "总开关",
+    "toggle_overlay": "显示/隐藏覆盖层",
+    "hide_overlay": "隐藏覆盖层",
+    "map_1": "地图 1  Stillwater",
+    "map_2": "地图 2  Lawson",
+    "map_3": "地图 3  DeSalle",
+    "map_4": "地图 4  Mammon",
+    "hide_hovered": "隐藏鼠标指向点位",
+}
+
+def category_label(category: str, fallback: str) -> str:
+    return CATEGORY_LABELS_ZH.get(category, str(fallback))
 
 user32 = ctypes.windll.user32
 GetKey = user32.GetAsyncKeyState
@@ -158,12 +188,12 @@ def fetch_remote_file(url: str, dst: str) -> bool:
 
 def format_last_update(ts: str) -> str:
     if not ts:
-        return "Data: never updated"
+        return "数据：从未更新"
     try:
         dt = datetime.fromisoformat(ts)
-        return "Data updated: " + dt.strftime("%Y-%m-%d %H:%M")
+        return "数据已更新：" + dt.strftime("%Y-%m-%d %H:%M")
     except:
-        return "Data: unknown"
+        return "数据：未知状态"
 
 def q2rgb(c: QtGui.QColor):
     return [c.red(), c.green(), c.blue()]
@@ -417,14 +447,14 @@ class KeyCaptureDialog(QtWidgets.QDialog):
     """
     def __init__(self, action_name: str, p=None):
         super().__init__(p)
-        self.setWindowTitle(f"Set keybind: {action_name}")
+        self.setWindowTitle(f"设置快捷键：{action_name}")
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
 
         self.result_bind = None
 
         v = QtWidgets.QVBoxLayout(self)
-        lbl = QtWidgets.QLabel("Press a key now\nCtrl Alt Shift are captured too\nEsc cancels")
+        lbl = QtWidgets.QLabel("请按下一个按键\n可同时按住 Ctrl / Alt / Shift\nEsc 取消")
         lbl.setAlignment(QtCore.Qt.AlignCenter)
         v.addWidget(lbl)
 
@@ -512,7 +542,7 @@ class SVPad(QtWidgets.QWidget):
 class AdvColorDlg(QtWidgets.QDialog):
     def __init__(self, start: QtGui.QColor, p=None):
         super().__init__(p)
-        self.setWindowTitle("Pick Color")
+        self.setWindowTitle("选择颜色")
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
         self.setStyleSheet(
@@ -559,24 +589,24 @@ class AdvColorDlg(QtWidgets.QDialog):
 
         v = QtWidgets.QVBoxLayout(self)
         v.addWidget(self.pad)
-        v.addWidget(QtWidgets.QLabel("Hue"))
+        v.addWidget(QtWidgets.QLabel("色相"))
         v.addWidget(self.h)
         rgb = QtWidgets.QHBoxLayout()
-        rgb.addLayout(row("R", self.r))
-        rgb.addLayout(row("G", self.g))
-        rgb.addLayout(row("B", self.b))
+        rgb.addLayout(row("红", self.r))
+        rgb.addLayout(row("绿", self.g))
+        rgb.addLayout(row("蓝", self.b))
         v.addLayout(rgb)
         hh = QtWidgets.QHBoxLayout()
-        hh.addWidget(QtWidgets.QLabel("Hex"))
+        hh.addWidget(QtWidgets.QLabel("十六进制"))
         hh.addWidget(self.hex)
         hh.addStretch(1)
         hh.addWidget(self.prev)
         v.addLayout(hh)
-        v.addWidget(QtWidgets.QLabel("Presets"))
+        v.addWidget(QtWidgets.QLabel("预设颜色"))
         v.addLayout(grid)
         bt = QtWidgets.QHBoxLayout()
-        ok = QtWidgets.QPushButton("OK")
-        ca = QtWidgets.QPushButton("Cancel")
+        ok = QtWidgets.QPushButton("确定")
+        ca = QtWidgets.QPushButton("取消")
         bt.addStretch(1)
         bt.addWidget(ok)
         bt.addWidget(ca)
@@ -714,8 +744,8 @@ class Panel(QtWidgets.QWidget):
 
     def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, p=None):
         super().__init__(p, QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
-        self.setWindowTitle("Hunt Map Overlay")
-        self.setFixedWidth(310)
+        self.setWindowTitle(APP_TITLE)
+        self.setFixedWidth(360)
         self.setStyleSheet(
             "QWidget{background:#1e1f22;color:#e6e6e6;font-size:12px;}"
             "QTabWidget::pane{border:1px solid #2b2d30;top:-1px;}"
@@ -767,21 +797,21 @@ class Panel(QtWidgets.QWidget):
         tv.addSpacing(6)
 
         map_row = QtWidgets.QHBoxLayout()
-        map_row.addWidget(QtWidgets.QLabel("Map:"))
+        map_row.addWidget(QtWidgets.QLabel("地图："))
         self.cmb = QtWidgets.QComboBox()
         self.cmb.addItems(MAPS)
         map_row.addWidget(self.cmb, 1)
         tv.addLayout(map_row)
         self.cmb.currentTextChanged.connect(self.mapSel)
 
-        self.chk_nums = QtWidgets.QCheckBox("1–4 map switch")
+        self.chk_nums = QtWidgets.QCheckBox("1-4 数字键切图")
         tv.addWidget(self.chk_nums)
         self.chk_nums.toggled.connect(self.tnums)
 
         tv.addSpacing(6)
 
         scale_row = QtWidgets.QHBoxLayout()
-        scale_row.addWidget(QtWidgets.QLabel("Scale:"))
+        scale_row.addWidget(QtWidgets.QLabel("缩放："))
         self.btn_dec = QtWidgets.QPushButton("−")
         self.btn_dec.setFixedWidth(26)
         self.btn_inc = QtWidgets.QPushButton("+")
@@ -802,12 +832,12 @@ class Panel(QtWidgets.QWidget):
         self.scale_box.valueChanged.connect(lambda x: self.scaleChanged.emit(float(x)))
 
         tv.addSpacing(6)
-        self.btn_def_colors = QtWidgets.QPushButton("Reset Colors")
+        self.btn_def_colors = QtWidgets.QPushButton("重置颜色")
         tv.addWidget(self.btn_def_colors)
         self.btn_def_colors.clicked.connect(self.resetColors)
 
         tv.addStretch(1)
-        tabs.addTab(types_page, "Types")
+        tabs.addTab(types_page, "点位")
 
         # ── Tab 2: Keybinds ───────────────────────────────────────────
         kb_page = QtWidgets.QWidget()
@@ -824,15 +854,15 @@ class Panel(QtWidgets.QWidget):
             cur_lbl.setStyleSheet("color:#90a0ff;")
             cur_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
             row.addWidget(cur_lbl)
-            btn = QtWidgets.QPushButton("Set")
-            btn.setFixedWidth(36)
+            btn = QtWidgets.QPushButton("设置")
+            btn.setFixedWidth(48)
             row.addWidget(btn)
             kv.addLayout(row)
             self.kb_rows[action] = (btn, cur_lbl)
             btn.clicked.connect(lambda _, a=action: self.requestBindEdit.emit(a))
 
         kv.addStretch(1)
-        tabs.addTab(kb_page, "Keybinds")
+        tabs.addTab(kb_page, "快捷键")
 
         # ── Tab 3: Settings ───────────────────────────────────────────
         cfg_page = QtWidgets.QWidget()
@@ -840,42 +870,42 @@ class Panel(QtWidgets.QWidget):
         cv.setContentsMargins(8, 8, 8, 8)
         cv.setSpacing(6)
 
-        self.chk_tray = QtWidgets.QCheckBox("Minimize to system tray")
+        self.chk_tray = QtWidgets.QCheckBox("最小化到系统托盘")
         self.chk_tray.setChecked(bool(start_min_to_tray))
         cv.addWidget(self.chk_tray)
         self.chk_tray.toggled.connect(lambda b: self.minimizeToTrayChanged.emit(bool(b)))
 
-        self.chk_hold_tab = QtWidgets.QCheckBox("Hold Tab to show overlay")
+        self.chk_hold_tab = QtWidgets.QCheckBox("按住 Tab 显示覆盖层")
         self.chk_hold_tab.setChecked(bool(start_hold_tab_mode))
         cv.addWidget(self.chk_hold_tab)
         self.chk_hold_tab.toggled.connect(lambda b: self.holdTabModeChanged.emit(bool(b)))
 
-        self.chk_block_shift_tab = QtWidgets.QCheckBox("Block Shift+Tab")
+        self.chk_block_shift_tab = QtWidgets.QCheckBox("屏蔽 Shift+Tab")
         self.chk_block_shift_tab.setChecked(bool(start_block_shift_tab))
         cv.addWidget(self.chk_block_shift_tab)
         self.chk_block_shift_tab.toggled.connect(lambda b: self.blockShiftTabChanged.emit(bool(b)))
 
         cv.addSpacing(4)
-        self.btn_reset_cfg = QtWidgets.QPushButton("Reset to Default Config")
+        self.btn_reset_cfg = QtWidgets.QPushButton("恢复默认配置")
         cv.addWidget(self.btn_reset_cfg)
         self.btn_reset_cfg.clicked.connect(self.resetConfig)
 
         cv.addSpacing(8)
 
         update_row = QtWidgets.QHBoxLayout()
-        self.update_label = QtWidgets.QLabel("Data: checking...")
+        self.update_label = QtWidgets.QLabel("数据：检查中...")
         self.update_label.setStyleSheet("color:#666666;font-size:11px;")
         update_row.addWidget(self.update_label)
         update_row.addStretch(1)
-        self.btn_force_refresh = QtWidgets.QPushButton("Force Refresh")
-        self.btn_force_refresh.setFixedWidth(90)
+        self.btn_force_refresh = QtWidgets.QPushButton("刷新数据")
+        self.btn_force_refresh.setFixedWidth(92)
         update_row.addWidget(self.btn_force_refresh)
         cv.addLayout(update_row)
         self.btn_force_refresh.clicked.connect(self.forceRefresh)
 
         cv.addSpacing(2)
         info_style = "color:#555555;font-size:11px;"
-        lbl_info = QtWidgets.QLabel(f"Aspect: {aspect}  |  v{config_version}")
+        lbl_info = QtWidgets.QLabel(f"屏幕比例：{aspect}  |  v{config_version}")
         lbl_info.setStyleSheet(info_style)
         cv.addWidget(lbl_info)
         lbl_path = QtWidgets.QLabel("%LOCALAPPDATA%\\HuntOverlay")
@@ -883,7 +913,7 @@ class Panel(QtWidgets.QWidget):
         cv.addWidget(lbl_path)
 
         cv.addStretch(1)
-        tabs.addTab(cfg_page, "Settings")
+        tabs.addTab(cfg_page, "设置")
 
     def _dec_scale(self):
         self.scale_box.setValue(max(self.scale_box.minimum(), self.scale_box.value() - 0.05))
@@ -932,14 +962,14 @@ class Overlay(QtWidgets.QWidget):
             self.setWindowIcon(QtGui.QIcon(ICON))
 
         if not os.path.isfile(DATA_PATH):
-            raise RuntimeError(f"Missing data.json in {udir()}")
+            raise RuntimeError(f"缺少 data.json：{udir()}")
         if not os.path.isfile(STYLE_PATH):
-            raise RuntimeError(f"Missing poiData.json in {udir()}")
+            raise RuntimeError(f"缺少 poiData.json：{udir()}")
 
         self.game_data = load_json(DATA_PATH)
         self.fmt = detect_data_format(self.game_data)
         if self.fmt == "unknown":
-            raise RuntimeError("Unrecognized data.json format")
+            raise RuntimeError("无法识别 data.json 数据格式")
 
         self.poi_style = load_json(STYLE_PATH)
 
@@ -968,16 +998,7 @@ class Overlay(QtWidgets.QWidget):
         self._load_state_from_config(self.data)
 
         # Build the panel window.
-        binds_label_map = {
-            "toggle_master": "Toggle master",
-            "toggle_overlay": "Toggle overlay",
-            "hide_overlay": "Hide overlay",
-            "map_1": "Map 1  Stillwater",
-            "map_2": "Map 2  Lawson",
-            "map_3": "Map 3  DeSalle",
-            "map_4": "Map 4  Mammon",
-            "hide_hovered": "Hide hovered POI",
-        }
+        binds_label_map = ACTION_LABELS_ZH
         binds_current = {a: self._bind_label(a) for a in binds_label_map}
         self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab)
         if ICON:
@@ -1079,8 +1100,8 @@ class Overlay(QtWidgets.QWidget):
             self.tray.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
 
         menu = QtWidgets.QMenu()
-        act_restore = QtGui.QAction("Restore panel", menu)
-        act_quit = QtGui.QAction("Quit", menu)
+        act_restore = QtGui.QAction("恢复控制面板", menu)
+        act_quit = QtGui.QAction("退出", menu)
         menu.addAction(act_restore)
         menu.addSeparator()
         menu.addAction(act_quit)
@@ -1101,7 +1122,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.hide()
         self.panel.setWindowState(QtCore.Qt.WindowNoState)
         try:
-            self.tray.showMessage("HuntOverlay", "Panel minimized to tray", QtWidgets.QSystemTrayIcon.Information, 1500)
+            self.tray.showMessage(APP_TITLE, "控制面板已最小化到托盘", QtWidgets.QSystemTrayIcon.Information, 1500)
         except:
             pass
 
@@ -1122,14 +1143,14 @@ class Overlay(QtWidgets.QWidget):
         self._save()
 
     def _force_data_refresh(self):
-        self.panel.setLastUpdateText("Data: updating...")
+        self.panel.setLastUpdateText("数据：正在更新...")
         self.panel.btn_force_refresh.setEnabled(False)
         t = threading.Thread(target=self._run_data_update, daemon=True)
         t.start()
 
     def _start_update_check(self):
         if needs_data_update():
-            self.panel.setLastUpdateText("Data: updating...")
+            self.panel.setLastUpdateText("数据：正在更新...")
             t = threading.Thread(target=self._run_data_update, daemon=True)
             t.start()
 
@@ -1164,7 +1185,7 @@ class Overlay(QtWidgets.QWidget):
 
         # possible_xp is a special union category.
         specs["possible_xp"] = {
-            "label": "Possible XP Location",
+            "label": category_label("possible_xp", "Possible XP Location"),
             "border": QtGui.QColor("#FFFFFF"),
             "default_fill": QtGui.QColor("#FFD34D"),
             "radius_px": 6,
@@ -1172,7 +1193,7 @@ class Overlay(QtWidgets.QWidget):
 
         def add_from_style(category, fallback_label):
             spec = find_style_by_category(self.poi_style, category) or {}
-            label = spec.get("label", fallback_label)
+            label = category_label(category, spec.get("label", fallback_label))
             border = qcolor_from_any(spec.get("borderColor", "#555555"), QtGui.QColor("#555555"))
             fill = qcolor_from_any(spec.get("fillColor", "#B4B4B4"), QtGui.QColor("#B4B4B4"))
             radius_px = overlay_radius_from_spec(spec.get("radius", 12))
@@ -1556,7 +1577,7 @@ class Overlay(QtWidgets.QWidget):
         try:
             self._tick()
         except Exception:
-            print("Overlay tick crashed:\n" + traceback.format_exc(), flush=True)
+            print("覆盖层刷新出错：\n" + traceback.format_exc(), flush=True)
 
     def _tick(self):
         nm = self._bind_pressed("toggle_master")
@@ -1623,7 +1644,7 @@ class Overlay(QtWidgets.QWidget):
         Captures next key press plus modifiers.
         Modifiers are only applied to hide_hovered by design.
         """
-        d = KeyCaptureDialog(action, self.panel)
+        d = KeyCaptureDialog(ACTION_LABELS_ZH.get(action, action), self.panel)
         if ICON:
             d.setWindowIcon(QtGui.QIcon(ICON))
 
@@ -1681,7 +1702,7 @@ class Overlay(QtWidgets.QWidget):
 
         # Map label at top right.
         m = 20
-        txt = f"{self.prof}  ({self.aspect})"
+        txt = f"地图：{self.prof}  ({self.aspect})"
         f = p.font()
         f.setBold(True)
         p.setFont(f)
@@ -1721,7 +1742,7 @@ if __name__ == "__main__":
     try:
         w = Overlay()
     except Exception as e:
-        QtWidgets.QMessageBox.critical(None, "HuntOverlay error", str(e))
+        QtWidgets.QMessageBox.critical(None, f"{APP_TITLE}：错误", str(e))
         sys.exit(1)
 
     sys.exit(app.exec())

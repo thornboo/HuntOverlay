@@ -16,8 +16,9 @@ from datetime import datetime, timedelta
 
 from .paths import load_json, save_json
 
-# Default cadence for the legacy "needs update?" check (24h).
-UPDATE_INTERVAL = timedelta(hours=24)
+# Default cadence for the legacy "needs update?" check (6h): keeps POI data
+# reasonably fresh without hitting the upstream server on every launch.
+UPDATE_INTERVAL = timedelta(hours=6)
 
 
 def load_update_meta(meta_path: str) -> dict:

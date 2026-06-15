@@ -10,7 +10,28 @@ from huntoverlay.data_source import (
     save_update_meta,
     needs_data_update,
     format_last_update,
+    UPDATE_INTERVAL,
 )
+
+
+@pytest.mark.unit
+def test_default_update_interval_is_6h():
+    # Locked at 6h: fresh enough without hammering upstream on every launch.
+    assert UPDATE_INTERVAL == timedelta(hours=6)
+
+
+@pytest.mark.unit
+def test_default_interval_used_when_not_passed(tmp_path):
+    # 5h-old check should NOT trigger under the 6h default.
+    p = os.path.join(tmp_path, "meta.json")
+    five_h_ago = (datetime.now() - timedelta(hours=5)).isoformat()
+    save_update_meta(p, {"last_check": five_h_ago})
+    assert needs_data_update(p) is False
+    # 7h-old check SHOULD trigger under the 6h default.
+    seven_h_ago = (datetime.now() - timedelta(hours=7)).isoformat()
+    save_update_meta(p, {"last_check": seven_h_ago})
+    assert needs_data_update(p) is True
+
 
 
 @pytest.mark.unit

@@ -10,6 +10,7 @@ from huntoverlay.config import (
     deep_merge,
     default_keybinds,
     load_or_replace_config,
+    vk_to_label,
 )
 from huntoverlay.constants import MAPS, CONFIG_VERSION
 
@@ -98,3 +99,25 @@ def test_load_keeps_current_version_untouched(tmp_path):
         json.dump(cur, f)
     cfg = load_or_replace_config(cfg_path)
     assert cfg["settings"]["selected_map"] == MAPS[2]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "vk,expected",
+    [
+        (0x09, "Tab"),
+        (0xC0, "`"),
+        (0x2E, "Delete"),
+        (0x10, "Shift"),
+        (0x11, "Ctrl"),
+        (0x12, "Alt"),
+        (0x1B, "Esc"),
+        (0x31, "1"),    # digit range
+        (0x39, "9"),
+        (0x41, "A"),    # letter range
+        (0x5A, "Z"),
+        (0x70, "VK_112"),  # F1, unmapped -> raw label
+    ],
+)
+def test_vk_to_label(vk, expected):
+    assert vk_to_label(vk) == expected

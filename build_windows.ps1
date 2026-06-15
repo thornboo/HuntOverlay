@@ -151,6 +151,7 @@ $commonArgs = @(
     "--noconfirm",
     "--windowed",
     "--icon", "myicon.ico",
+    "--collect-submodules", "huntoverlay",
     "--add-data", "data.json;.",
     "--add-data", "poiData.json;.",
     "--add-data", "myicon.ico;.",

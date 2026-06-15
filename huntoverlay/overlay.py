@@ -1,0 +1,870 @@
+"""Overlay window — the always-on-top, click-through map layer (Qt).
+
+Verbatim move of the Overlay class from the single-file build. Imports are
+rewired to the new package. To keep the class body byte-for-byte identical,
+this module re-exposes the names the class used as module-level globals
+(DATA_PATH/STYLE_PATH/CONFIG_PATH/META_PATH and thin wrappers for the
+config/meta helpers that now take explicit paths).
+"""
+
+import json
+import os
+import threading
+import traceback
+from datetime import datetime
+
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from .constants import (
+    APP_TITLE, CONFIG_VERSION, MAPS, ACTION_LABELS_ZH,
+    DATA_URL, STYLE_URL, category_label, map_display,
+    DEFAULT_HIDDEN_POSSIBLE_XP,
+    VK_TAB, VK_CONTROL, VK_MENU, VK_SHIFT,
+)
+from .geometry import (
+    detect_aspect_label, overlay_radius_from_spec, rotate90cw_norm,
+    default_rect_ratio_by_aspect,
+)
+from .mapdata import (
+    detect_data_format, get_map_block, get_category_list, find_style_by_category,
+)
+from .paths import load_json, save_json, udir
+from .config import (
+    build_default_config, default_keybinds, vk_to_label,
+    load_or_replace_config as _load_or_replace_config,
+)
+from . import data_source as _ds
+from .qt_adapters import q2rgb, rgb2q, qcolor_from_any, screenWH
+from .win32 import key, topmost, click_through
+from .runtime import ICON, CONFIG_PATH, META_PATH, data_path, style_path
+from .widgets.panel import Panel
+from .widgets.dialogs import KeyCaptureDialog
+
+# Resolve the user data files once at import (startup), matching the original
+# module-level behavior. ensure_user_file copies bundled defaults if needed.
+DATA_PATH = data_path()
+STYLE_PATH = style_path()
+
+
+# Thin wrappers preserving the original no-arg call sites in the class body.
+def load_or_replace_config():
+    return _load_or_replace_config(CONFIG_PATH)
+
+
+def load_update_meta():
+    return _ds.load_update_meta(META_PATH)
+
+
+def save_update_meta(meta):
+    return _ds.save_update_meta(META_PATH, meta)
+
+
+def needs_data_update():
+    return _ds.needs_data_update(META_PATH)
+
+
+def fetch_remote_file(url, dst):
+    return _ds.fetch_remote_file(url, dst)
+
+
+def format_last_update(ts):
+    return _ds.format_last_update(ts)
+
+
+class Overlay(QtWidgets.QWidget):
+    dataUpdateFinished = QtCore.Signal(str)  # emits timestamp string
+
+    def __init__(self):
+        super().__init__(None, QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Tool)
+        self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+        self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating, True)
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.setMouseTracking(False)
+        self._set_overlay_to_primary_monitor()
+
+
+        if ICON:
+            QtWidgets.QApplication.instance().setWindowIcon(QtGui.QIcon(ICON))
+            self.setWindowIcon(QtGui.QIcon(ICON))
+
+        if not os.path.isfile(DATA_PATH):
+            raise RuntimeError(f"缺少 data.json：{udir()}")
+        if not os.path.isfile(STYLE_PATH):
+            raise RuntimeError(f"缺少 poiData.json：{udir()}")
+
+        self.game_data = load_json(DATA_PATH)
+        self.fmt = detect_data_format(self.game_data)
+        if self.fmt == "unknown":
+            raise RuntimeError("无法识别 data.json 数据格式")
+
+        self.poi_style = load_json(STYLE_PATH)
+
+        # Order of types controls draw order and GUI ordering.
+        self.type_order = [
+            "possible_xp",
+            "spawns",
+            "armories",
+            "towers",
+            "big_towers",
+            "workbenches",
+            "wild_targets",
+            "brutes",
+            "beetles",
+            "easter_eggs",
+            "melee_weapons",
+            "cash_registers",
+        ]
+
+        self.type_specs = self._build_type_specs()
+
+        W, H = screenWH()
+        self.aspect = detect_aspect_label(W, H)
+
+        self.data = load_or_replace_config()
+        self._load_state_from_config(self.data)
+
+        # Build the panel window.
+        binds_label_map = ACTION_LABELS_ZH
+        binds_current = {a: self._bind_label(a) for a in binds_label_map}
+        self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab)
+        if ICON:
+            self.panel.setWindowIcon(QtGui.QIcon(ICON))
+
+        # Wire GUI events.
+        self.panel.tnums.connect(self._set_num_switch)
+        self.panel.mapSel.connect(self.switch)
+        self.panel.resetColors.connect(self._reset_colors)
+        self.panel.typeToggled.connect(self._type_toggle)
+        self.panel.typeColor.connect(self._type_color)
+        self.panel.scaleChanged.connect(self._scale_changed)
+        self.panel.requestBindEdit.connect(self._edit_keybind)
+        self.panel.resetConfig.connect(self._reset_config_to_defaults)
+        self.panel.minimizeToTrayChanged.connect(self._set_minimize_to_tray)
+        self.panel.holdTabModeChanged.connect(self._set_hold_tab_mode)
+        self.panel.blockShiftTabChanged.connect(self._set_block_shift_tab)
+        self.panel.forceRefresh.connect(self._force_data_refresh)
+
+        # Seed GUI with current state.
+        self.panel.chk_nums.setChecked(self.num_sw)
+        self.panel.setMap(self.prof)
+        for k in self.type_order:
+            self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
+
+        self._position_panel_right_center()
+
+        # System tray setup.
+        self.tray = None
+        if self.minimize_to_tray:
+            self._ensure_tray()
+
+        # Make overlay click through and topmost on primary monitor.
+        click_through(int(self.winId()))
+        if self.visible and self.master:
+
+            self._show_overlay_on_primary()
+
+        else:
+
+            self.hide()
+        topmost(int(self.winId()))
+
+        # Edge detection for hotkeys so they do not toggle repeatedly while held.
+        self.p_toggle_master = False
+        self.p_hide = False
+        self.p_toggle_overlay = False
+        self.p_hide_hovered = False
+
+        # Hover state is computed each tick when visible.
+        self.hover = None
+        self.hover_radius = 10
+
+        # Cache computed point lists per map to avoid rebuilding every frame.
+        self.cache = {}
+        self._rebuild_all_caches()
+
+        # Save once at the end to ensure config contains any missing keys we added.
+        self._save()
+        
+        # Start with the control panel minimized to tray.
+        if self.minimize_to_tray:
+            self._hide_panel_to_tray()
+        else:
+            self.panel.show()
+            self._position_panel_right_center()
+        # Timer tick drives input polling and hover updates.
+        self.t = QtCore.QTimer(self)
+        self.t.timeout.connect(self._tick_safe)
+        self.t.start(16)
+
+        # Minimize to tray needs access to the panel state changes.
+        self.panel.installEventFilter(self)
+
+        # Wire data update signal and seed the label with last known timestamp.
+        self.dataUpdateFinished.connect(self._on_data_update_finished)
+        self.panel.setLastUpdateText(format_last_update(load_update_meta().get("last_check", "")))
+        self._start_update_check()
+
+    def eventFilter(self, obj, ev):
+        if obj is self.panel:
+            if ev.type() == QtCore.QEvent.WindowStateChange:
+                if self.minimize_to_tray and self.panel.isMinimized():
+                    self._hide_panel_to_tray()
+                    return True
+        return super().eventFilter(obj, ev)
+
+    def _ensure_tray(self):
+        """
+        Creates tray icon and menu once.
+        Tray is only used when minimize_to_tray is enabled, but we keep it available.
+        """
+        if self.tray is not None:
+            return
+
+        self.tray = QtWidgets.QSystemTrayIcon(self)
+        if ICON:
+            self.tray.setIcon(QtGui.QIcon(ICON))
+        else:
+            self.tray.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
+
+        menu = QtWidgets.QMenu()
+        act_restore = QtGui.QAction("恢复控制面板", menu)
+        act_quit = QtGui.QAction("退出", menu)
+        menu.addAction(act_restore)
+        menu.addSeparator()
+        menu.addAction(act_quit)
+
+        act_restore.triggered.connect(self._restore_panel_from_tray)
+        act_quit.triggered.connect(QtWidgets.QApplication.quit)
+
+        self.tray.setContextMenu(menu)
+        self.tray.activated.connect(self._tray_activated)
+        self.tray.show()
+
+    def _tray_activated(self, reason):
+        if reason == QtWidgets.QSystemTrayIcon.Trigger:
+            self._restore_panel_from_tray()
+
+    def _hide_panel_to_tray(self):
+        self._ensure_tray()
+        self.panel.hide()
+        self.panel.setWindowState(QtCore.Qt.WindowNoState)
+        try:
+            self.tray.showMessage(APP_TITLE, "控制面板已最小化到托盘", QtWidgets.QSystemTrayIcon.Information, 1500)
+        except:
+            pass
+
+    def _restore_panel_from_tray(self):
+        self.panel.showNormal()
+        self._position_panel_right_center()
+        self.panel.raise_()
+        self.panel.activateWindow()
+
+    def _set_minimize_to_tray(self, v: bool):
+        self.minimize_to_tray = bool(v)
+        self._save()
+    def _set_hold_tab_mode(self, v: bool):
+        self.hold_tab_mode = bool(v)
+        self._save()
+
+    def _set_block_shift_tab(self, v: bool):
+        self.block_shift_tab = bool(v)
+        self._save()
+
+    def _force_data_refresh(self):
+        self.panel.setLastUpdateText("数据：正在更新...")
+        self.panel.btn_force_refresh.setEnabled(False)
+        t = threading.Thread(target=self._run_data_update, daemon=True)
+        t.start()
+
+    def _start_update_check(self):
+        if needs_data_update():
+            self.panel.setLastUpdateText("数据：正在更新...")
+            t = threading.Thread(target=self._run_data_update, daemon=True)
+            t.start()
+
+    def _run_data_update(self):
+        """Runs in a background thread. Downloads both files then emits the finished signal."""
+        ok_data  = fetch_remote_file(DATA_URL,  DATA_PATH)
+        ok_style = fetch_remote_file(STYLE_URL, STYLE_PATH)
+        ts = datetime.now().isoformat(timespec="seconds") if (ok_data or ok_style) else ""
+        meta = load_update_meta()
+        if ok_data or ok_style:
+            meta["last_check"] = ts
+            save_update_meta(meta)
+        self.dataUpdateFinished.emit(ts)
+
+    def _on_data_update_finished(self, ts: str):
+        """Slot — runs on the main thread after the background download completes."""
+        if ts:
+            try:
+                self.game_data = load_json(DATA_PATH)
+                self.fmt = detect_data_format(self.game_data)
+                self.poi_style = load_json(STYLE_PATH)
+                self.type_specs = self._build_type_specs()
+                self._rebuild_all_caches()
+                self.update()
+            except Exception:
+                pass
+        self.panel.setLastUpdateText(format_last_update(ts if ts else load_update_meta().get("last_check", "")))
+        self.panel.btn_force_refresh.setEnabled(True)
+
+    def _build_type_specs(self):
+        specs = {}
+
+        # possible_xp is a special union category.
+        specs["possible_xp"] = {
+            "label": category_label("possible_xp", "Possible XP Location"),
+            "border": QtGui.QColor("#FFFFFF"),
+            "default_fill": QtGui.QColor("#FFD34D"),
+            "radius_px": 6,
+        }
+
+        def add_from_style(category, fallback_label):
+            spec = find_style_by_category(self.poi_style, category) or {}
+            label = category_label(category, spec.get("label", fallback_label))
+            border = qcolor_from_any(spec.get("borderColor", "#555555"), QtGui.QColor("#555555"))
+            fill = qcolor_from_any(spec.get("fillColor", "#B4B4B4"), QtGui.QColor("#B4B4B4"))
+            radius_px = overlay_radius_from_spec(spec.get("radius", 12))
+            specs[category] = {"label": str(label), "border": border, "default_fill": fill, "radius_px": radius_px}
+
+        add_from_style("spawns", "Spawns")
+        add_from_style("armories", "Armories")
+        add_from_style("towers", "Hunting Towers")
+        add_from_style("big_towers", "Watch Towers")
+        add_from_style("workbenches", "Workbenches")
+        add_from_style("wild_targets", "Wild Targets")
+        add_from_style("brutes", "Brutes")
+        add_from_style("beetles", "Beetles")
+        add_from_style("easter_eggs", "Easter Eggs")
+        add_from_style("melee_weapons", "Melee Weapons")
+        add_from_style("cash_registers", "Cash Registers")
+
+        return specs
+
+    def _normalize_keybinds(self, binds: dict) -> dict:
+        """
+        Merges config keybinds with defaults and forces correct types.
+        Unknown keys are ignored.
+        """
+        base = default_keybinds()
+        merged = {k: dict(v) for k, v in base.items()}
+
+        if isinstance(binds, dict):
+            for k, v in binds.items():
+                if k not in merged:
+                    continue
+                if not isinstance(v, dict):
+                    continue
+                for kk, vv in v.items():
+                    merged[k][kk] = vv
+
+        for k, v in merged.items():
+            try:
+                v["vk"] = int(v.get("vk", base[k]["vk"]))
+            except:
+                v["vk"] = int(base[k]["vk"])
+
+            if k == "hide_hovered":
+                v["ctrl"] = bool(v.get("ctrl", True))
+                v["alt"] = bool(v.get("alt", True))
+                v["shift"] = bool(v.get("shift", True))
+
+        return merged
+
+    def _load_state_from_config(self, d: dict):
+        """
+        Loads stateful runtime fields from the config dict.
+        This is used at startup and after a full reset to default config.
+        """
+        st = d.get("settings", {}) if isinstance(d, dict) else {}
+        if not isinstance(st, dict):
+            st = {}
+
+        self.num_sw = bool(st.get("enable_num_switch", True))
+        sel = st.get("selected_map", MAPS[0])
+        self.prof = sel if sel in MAPS else MAPS[0]
+        self.visible = bool(st.get("visible_overlay", False))
+        self.master = bool(st.get("master_on", True))
+
+        self.global_scale = float(st.get("global_scale", 1.00))
+        if self.global_scale < 0.10: self.global_scale = 0.10
+        if self.global_scale > 5.00: self.global_scale = 5.00
+
+        self.minimize_to_tray = bool(st.get("minimize_to_tray", False))
+        self.hold_tab_mode = bool(st.get("hold_tab_to_show", False))
+        self.block_shift_tab = bool(st.get("block_shift_tab", True))
+
+
+        self.binds = self._normalize_keybinds(st.get("keybinds", {}))
+
+        # Per type settings.
+        self.types = st.get("types", {})
+        if not isinstance(self.types, dict):
+            self.types = {}
+        for k in self.type_order:
+            if k not in self.types or not isinstance(self.types.get(k), dict):
+                self.types[k] = {"enabled": True, "color": q2rgb(self.type_specs[k]["default_fill"])}
+            if "enabled" not in self.types[k]:
+                self.types[k]["enabled"] = True
+            if "color" not in self.types[k]:
+                self.types[k]["color"] = q2rgb(self.type_specs[k]["default_fill"])
+
+        # Hidden lists.
+        self.hidden = st.get("hidden", {})
+        if not isinstance(self.hidden, dict):
+            self.hidden = {}
+        for k in self.type_order:
+            if k not in self.hidden or not isinstance(self.hidden.get(k), list):
+                self.hidden[k] = []
+
+        # Ensure default hidden possible_xp entries exist.
+        px = self.hidden.get("possible_xp", [])
+        if not isinstance(px, list):
+            px = []
+        for s in DEFAULT_HIDDEN_POSSIBLE_XP:
+            if s not in px:
+                px.append(s)
+        self.hidden["possible_xp"] = px
+
+        self.hidden_sets = {k: set(self.hidden.get(k, [])) for k in self.type_order}
+
+        # Apply aspect aware rect.
+        self.rect = None
+        self._apply_rect()
+
+    def _bind_pressed(self, name: str) -> bool:
+        b = self.binds.get(name, {})
+        try:
+            vk = int(b.get("vk", 0))
+        except:
+            return False
+        if vk == 0:
+            return False
+        if vk == VK_TAB and (key(VK_CONTROL) or key(VK_MENU)):
+            return False
+        if vk == VK_TAB and self.block_shift_tab and key(VK_SHIFT):
+            return False
+
+        if name == "hide_hovered":
+            need_ctrl = bool(b.get("ctrl", True))
+            need_alt = bool(b.get("alt", True))
+            need_shift = bool(b.get("shift", True))
+            if need_ctrl and not key(VK_CONTROL): return False
+            if need_alt and not key(VK_MENU): return False
+            if need_shift and not key(VK_SHIFT): return False
+            return key(vk)
+
+        return key(vk)
+
+    def _bind_label(self, name: str) -> str:
+        b = self.binds.get(name, {})
+        try:
+            vk = int(b.get("vk", 0))
+        except:
+            vk = 0
+
+        if name == "hide_hovered":
+            parts = []
+            if bool(b.get("ctrl", True)): parts.append("Ctrl")
+            if bool(b.get("alt", True)): parts.append("Alt")
+            if bool(b.get("shift", True)): parts.append("Shift")
+            parts.append(vk_to_label(vk))
+            return " + ".join(parts)
+
+        return vk_to_label(vk)
+
+    def _save(self):
+        st = self.data.setdefault("settings", {})
+        self.data["version"] = CONFIG_VERSION
+
+        st["enable_num_switch"] = self.num_sw
+        st["selected_map"] = self.prof
+        st["visible_overlay"] = self.visible
+        st["master_on"] = self.master
+        st["global_scale"] = float(self.global_scale)
+        st["minimize_to_tray"] = bool(self.minimize_to_tray)
+        st["hold_tab_to_show"] = bool(self.hold_tab_mode)
+        st["block_shift_tab"] = bool(self.block_shift_tab)
+
+        st["types"] = self.types
+        st["keybinds"] = self.binds
+
+        # Persist hidden sets.
+        st["hidden"] = {k: sorted(list(self.hidden_sets.get(k, set()))) for k in self.type_order}
+
+        save_json(CONFIG_PATH, self.data)
+
+    def _apply_rect(self):
+        """
+        Uses detected aspect label to select the correct ratio for the current map.
+        """
+        pm = self.data.get("profiles", {}).get(self.prof, {})
+        rra = pm.get("rect_ratio_by_aspect", {})
+        rr = rra.get(self.aspect, None)
+        if not isinstance(rr, dict):
+            rr = default_rect_ratio_by_aspect().get(self.aspect, default_rect_ratio_16_9())
+
+        W, H = screenWH()
+        self.rect = QtCore.QRect(
+            int(rr["rx"] * W),
+            int(rr["ry"] * H),
+            max(1, int(rr["rw"] * W)),
+            max(1, int(rr["rh"] * H))
+        )
+    
+    def _position_panel_right_center(self):
+        """Place the control panel against the right edge, vertically centered.
+
+        The overlay marker rect lives in the central band of the screen
+        (roughly 31%-69% wide in 16:9), so the right edge stays clear of it.
+        Uses availableGeometry so the Windows taskbar is respected.
+        """
+        screen = QtGui.QGuiApplication.primaryScreen()
+        if screen is None:
+            self.panel.move(40, 40)
+            return
+
+        # Ensure the panel has computed its real size before we measure it.
+        self.panel.adjustSize()
+        avail = screen.availableGeometry()
+        margin = 24
+        pw = self.panel.frameGeometry().width()
+        ph = self.panel.frameGeometry().height()
+
+        x = avail.right() - pw - margin
+        y = avail.top() + max(0, (avail.height() - ph) // 2)
+        # Never let the panel run off the left edge on small screens.
+        x = max(avail.left() + margin, x)
+        self.panel.move(int(x), int(y))
+
+    def _set_overlay_to_primary_monitor(self):
+
+        ps = QtGui.QGuiApplication.primaryScreen()
+
+        if ps is None:
+
+            return
+
+        self.setGeometry(ps.geometry())
+
+
+
+    def _show_overlay_on_primary(self):
+
+        self._set_overlay_to_primary_monitor()
+
+        self.show()
+
+        topmost(int(self.winId()))
+
+    def _set_num_switch(self, v: bool):
+        self.num_sw = bool(v)
+        self._save()
+
+    def _type_toggle(self, tkey: str, enabled: bool):
+        if tkey in self.types:
+            self.types[tkey]["enabled"] = bool(enabled)
+            self._save()
+            self.update()
+
+    def _type_color(self, tkey: str, color: QtGui.QColor):
+        if tkey in self.types:
+            self.types[tkey]["color"] = q2rgb(QtGui.QColor(color))
+            self._save()
+            self.update()
+
+    def _scale_changed(self, scale: float):
+        self.global_scale = float(scale)
+        if self.global_scale < 0.10: self.global_scale = 0.10
+        if self.global_scale > 5.00: self.global_scale = 5.00
+        self._save()
+        self.update()
+
+    def _reset_colors(self):
+        for k in self.type_order:
+            self.types[k]["enabled"] = True
+            self.types[k]["color"] = q2rgb(self.type_specs[k]["default_fill"])
+            self.panel.setTypeState(k, True, self.type_specs[k]["default_fill"])
+        self._save()
+        self.update()
+
+    def _reset_config_to_defaults(self):
+        """
+        Overwrites config.json with fresh defaults and reloads state immediately.
+        This does not touch data.json or poiData.json.
+        """
+        fresh = build_default_config()
+        save_json(CONFIG_PATH, fresh)
+
+        self.data = load_or_replace_config()
+        self._load_state_from_config(self.data)
+
+        # Re apply map selection and rectangle because the selected map may have changed.
+        self._apply_rect()
+
+        # Push state back into GUI widgets.
+        self.panel.chk_nums.setChecked(self.num_sw)
+        self.panel.chk_tray.setChecked(self.minimize_to_tray)
+        self.panel.chk_hold_tab.setChecked(self.hold_tab_mode)
+        self.panel.chk_block_shift_tab.setChecked(self.block_shift_tab)
+        self.panel.scale_box.setValue(float(self.global_scale))
+        self.panel.setMap(self.prof)
+
+        for k in self.type_order:
+            self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
+
+        # Refresh keybind labels.
+        for action in self.binds:
+            self.panel.setKeybindLabel(action, self._bind_label(action))
+
+        # Apply overlay visibility state.
+        (self.show if self.visible and self.master else self.hide)()
+        self._save()
+        self.update()
+
+    def switch(self, name: str):
+        if name in MAPS and name != self.prof:
+            self.prof = name
+            self._apply_rect()
+            self._save()
+            self.update()
+
+    def _rebuild_all_caches(self):
+        for m in MAPS:
+            self.cache[m] = self._build_points_for_map(m)
+
+    def _build_points_for_map(self, map_name: str):
+        block = get_map_block(self.game_data, self.fmt, map_name)
+        out = {k: [] for k in self.type_order}
+        if not block:
+            return out
+
+        def build_for_category(cat: str):
+            items = get_category_list(block, self.fmt, cat)
+            pts = []
+            for it in items:
+                if not isinstance(it, dict):
+                    continue
+                c = it.get("c")
+                if not c or len(c) < 2:
+                    continue
+                try:
+                    x, y = float(c[0]), float(c[1])
+                except:
+                    continue
+                u, v = rotate90cw_norm(x, y)
+                pts.append({"u": u, "v": v, "x": x, "y": y, "raw": it, "src": cat})
+            return pts
+
+        for cat in self.type_order:
+            if cat == "possible_xp":
+                continue
+            out[cat] = build_for_category(cat)
+
+        union = []
+        for src in ("towers", "big_towers", "armories"):
+            union.extend(out.get(src, []))
+        out["possible_xp"] = union
+
+        return out
+
+    def _hidden_key(self, tkey: str, pt: dict) -> str:
+        """
+        Stable hide id.
+        For possible_xp we include src so hiding only affects possible_xp entries.
+        For other categories use xi:yi.
+        """
+        xi = int(round(float(pt.get("x", 0))))
+        yi = int(round(float(pt.get("y", 0))))
+        if tkey == "possible_xp":
+            src = str(pt.get("src", ""))
+            return f"{src}:{xi}:{yi}"
+        return f"{xi}:{yi}"
+
+    def _is_hidden(self, tkey: str, pt: dict) -> bool:
+        return self._hidden_key(tkey, pt) in self.hidden_sets.get(tkey, set())
+
+    def _hide_hovered(self):
+        if self.hover is None:
+            return
+        tkey = self.hover["type"]
+        pt = self.hover["pt_ref"]
+        hk = self._hidden_key(tkey, pt)
+        self.hidden_sets.setdefault(tkey, set()).add(hk)
+        self._save()
+        self.hover = None
+        self.update()
+
+    def _update_hover(self):
+        self.hover = None
+        if not (self.master and self.visible and self.rect):
+            return
+
+        gp = QtGui.QCursor.pos()
+        lp = self.mapFromGlobal(gp)
+        mx, my = float(lp.x()), float(lp.y())
+
+        pts_by_type = self.cache.get(self.prof, {})
+        best = None
+        best_d2 = float(self.hover_radius * self.hover_radius)
+
+        for tkey in self.type_order:
+            if not self.types.get(tkey, {}).get("enabled", True):
+                continue
+
+            for idx, pt in enumerate(pts_by_type.get(tkey, [])):
+                if self._is_hidden(tkey, pt):
+                    continue
+                cx = self.rect.left() + pt["u"] * self.rect.width()
+                cy = self.rect.top() + pt["v"] * self.rect.height()
+                dx = mx - cx
+                dy = my - cy
+                d2 = dx * dx + dy * dy
+                if d2 <= best_d2:
+                    best_d2 = d2
+                    best = {"map": self.prof, "type": tkey, "index": idx, "pt_ref": pt}
+
+        self.hover = best
+
+    def _tick_safe(self):
+        try:
+            self._tick()
+        except Exception:
+            print("覆盖层刷新出错：\n" + traceback.format_exc(), flush=True)
+
+    def _tick(self):
+        nm = self._bind_pressed("toggle_master")
+        if nm and not self.p_toggle_master:
+            self.master = not self.master
+            if not self.master and self.visible:
+                self.visible = False
+                self.hide()
+            self._save()
+        self.p_toggle_master = nm
+
+        nh = self._bind_pressed("hide_overlay")
+        if nh and not self.p_hide and self.visible:
+            self.visible = False
+            self.hide()
+            self._save()
+        self.p_hide = nh
+
+        if not self.master:
+            return
+
+        nt = self._bind_pressed("toggle_overlay")
+        if self.hold_tab_mode:
+            next_visible = bool(nt)
+            if self.visible != next_visible:
+                self.visible = next_visible
+                if self.visible:
+                    self._show_overlay_on_primary()
+                else:
+                    self.hide()
+                self._save()
+            self.p_toggle_overlay = nt
+        else:
+            if nt and not self.p_toggle_overlay:
+                self.visible = not self.visible
+                if self.visible:
+                    self._show_overlay_on_primary()
+                else:
+                    self.hide()
+                self._save()
+            self.p_toggle_overlay = nt
+
+
+        # Map switching uses MAPS order. Since MAPS changed, 2 is Lawson and 3 is DeSalle.
+        if self.visible and self.num_sw:
+            if self._bind_pressed("map_1"): self.switch(MAPS[0])
+            elif self._bind_pressed("map_2"): self.switch(MAPS[1])
+            elif self._bind_pressed("map_3"): self.switch(MAPS[2])
+            elif self._bind_pressed("map_4"): self.switch(MAPS[3])
+
+        if self.visible:
+            self._update_hover()
+
+        hide_now = self._bind_pressed("hide_hovered")
+        if hide_now and not self.p_hide_hovered:
+            self._hide_hovered()
+        self.p_hide_hovered = hide_now
+
+        self.update()
+
+    def _edit_keybind(self, action: str):
+        """
+        GUI initiated keybind edit.
+        Captures next key press plus modifiers.
+        Modifiers are only applied to hide_hovered by design.
+        """
+        d = KeyCaptureDialog(ACTION_LABELS_ZH.get(action, action), self.panel)
+        if ICON:
+            d.setWindowIcon(QtGui.QIcon(ICON))
+
+        if d.exec() != QtWidgets.QDialog.Accepted:
+            return
+
+        b = d.result_bind
+        if not isinstance(b, dict) or action not in self.binds:
+            return
+
+        self.binds[action]["vk"] = int(b.get("vk", self.binds[action]["vk"]))
+
+        if action == "hide_hovered":
+            self.binds[action]["ctrl"] = bool(b.get("ctrl", True))
+            self.binds[action]["alt"] = bool(b.get("alt", True))
+            self.binds[action]["shift"] = bool(b.get("shift", True))
+
+        self._save()
+        self.panel.setKeybindLabel(action, self._bind_label(action))
+
+    def paintEvent(self, _):
+        if not (self.master and self.visible and self.rect):
+            return
+
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        pts_by_type = self.cache.get(self.prof, {})
+
+        for tkey in self.type_order:
+            if not self.types.get(tkey, {}).get("enabled", True):
+                continue
+
+            fill = rgb2q(self.types[tkey].get("color"), self.type_specs[tkey]["default_fill"])
+            border = self.type_specs[tkey]["border"]
+
+            base_rpx = int(self.type_specs[tkey]["radius_px"])
+            scaled = int(round(base_rpx * float(self.global_scale)))
+            if scaled < 1: scaled = 1
+            if scaled > 40: scaled = 40
+
+            p.setPen(QtGui.QPen(border, 2))
+            p.setBrush(fill)
+
+            for pt in pts_by_type.get(tkey, []):
+                if self._is_hidden(tkey, pt):
+                    continue
+                p.drawEllipse(
+                    QtCore.QPointF(
+                        self.rect.left() + pt["u"] * self.rect.width(),
+                        self.rect.top() + pt["v"] * self.rect.height()
+                    ),
+                    scaled, scaled
+                )
+
+        # Map label at top right.
+        m = 20
+        txt = f"地图：{map_display(self.prof)}  ({self.aspect})"
+        f = p.font()
+        f.setBold(True)
+        p.setFont(f)
+        fm = QtGui.QFontMetrics(f)
+        tw, th = fm.horizontalAdvance(txt), fm.height()
+        r = QtCore.QRectF(self.width() - m - tw - 16, m, tw + 16, th + 10)
+        p.setPen(QtCore.Qt.NoPen)
+        p.setBrush(QtGui.QColor(0, 0, 0, 150))
+        p.drawRoundedRect(r, 8, 8)
+        p.setPen(QtGui.QPen(QtGui.QColor(230, 230, 230), 1))
+        p.drawText(r.adjusted(8, 7, -8, -4), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, txt)
+        p.end()

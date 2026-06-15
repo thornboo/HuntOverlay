@@ -32,6 +32,28 @@ def default_keybinds():
     }
 
 
+def vk_to_label(vk: int) -> str:
+    if vk == constants.VK_TAB:
+        return "Tab"
+    if vk == constants.VK_BT:
+        return "`"
+    if vk == constants.VK_DELETE:
+        return "Delete"
+    if vk == constants.VK_SHIFT:
+        return "Shift"
+    if vk == constants.VK_CONTROL:
+        return "Ctrl"
+    if vk == constants.VK_MENU:
+        return "Alt"
+    if 0x30 <= vk <= 0x39:
+        return chr(vk)
+    if 0x41 <= vk <= 0x5A:
+        return chr(vk)
+    if vk == constants.VK_ESC:
+        return "Esc"
+    return f"VK_{vk}"
+
+
 def build_default_config():
     profiles = {}
     for m in constants.MAPS:

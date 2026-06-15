@@ -129,6 +129,37 @@ The global size scale enlarges or shrinks all POIs without editing JSON files.
 
 ---
 
+## Important Notes
+
+### Game Display Mode (read this)
+
+The overlay is a separate layered window drawn above the game. Windows
+**Exclusive Fullscreen** takes over the display output, so **no external
+overlay can show on top of it** — this is a Windows limitation, not a bug.
+
+In Hunt: Showdown's video settings, use one of:
+
+- **Borderless** / Borderless Windowed, or
+- **Windowed Fullscreen**
+
+so the overlay can render above the game.
+
+### POI Data
+
+POI coordinates come from a community-maintained online source. The app
+checks for updates in the background roughly every 6 hours without slowing
+startup, and the control panel has a manual refresh button for an immediate
+pull. If points don't perfectly match the game, it's usually because the
+upstream data hasn't caught up with the latest patch yet.
+
+### Multi-Monitor / High DPI
+
+The overlay auto-scales to the primary monitor's resolution. On multi-monitor
+setups with mixed DPI scaling, overlay positioning may drift — run the game on
+the primary monitor for best results.
+
+---
+
 ## Installation
 
 ### Option 1: Prebuilt Executable

@@ -1,0 +1,217 @@
+# 猎杀对决地图覆盖工具（HuntOverlay）
+
+> [English](README.md) | 简体中文
+
+一个轻量、实时的 Windows 地图覆盖工具，用于在屏幕上显示《猎杀：对决》（Hunt: Showdown）的地图点位。
+工具以独立窗口运行，支持点击穿透、点位分类配置和本地持久化设置，不修改游戏文件。
+
+本项目是基于 [HuntOverlay-by-sKhaled](https://github.com/uzpj/HuntOverlay-by-sKhaled) 的二次开发版本，
+聚焦于中文本地化、便携式 Windows 构建，以及后续的功能扩展与逻辑优化。
+原作者文档内容已并入本文件。
+
+---
+
+## 安全说明
+
+原项目 Hunt Map Overlay by sKhaled 的唯一官方仓库是：
+
+https://github.com/uzpj/HuntOverlay-by-sKhaled
+
+原作者的官方构建只通过该仓库的 Releases 页面发布。
+
+如果你从未知来源下载了可执行文件，它可能包含被修改或不安全的代码。运行任何可执行文件前，请确认来源可信。
+如果你发现某个仓库分发了带外部下载链接或修改后二进制文件的版本，在未核实前应视为不可信。
+
+## 免责声明
+
+本项目与 Crytek 没有从属关系，也未获得 Crytek 官方认可。
+
+- 使用风险由你自行承担，本项目不提供任何保证。
+- 本工具不会修改游戏文件，也不会读取、注入或修改游戏内存。
+- 本工具定位为信息展示和可访问性用途。
+
+请始终遵守游戏的服务条款。
+
+## 特别鸣谢
+
+- Kamille（https://github.com/waibcam）及其 Discord 社区提供 POI 数据。
+- 原作者 sKhaled 提供了本项目的基础实现。
+
+---
+
+## 功能
+
+- 实时屏幕地图覆盖层
+- 支持全部《猎杀：对决》地图
+- 可配置 POI 点位分类
+- 可按分类启用或禁用点位
+- 可按分类选择颜色
+- 全局 POI 大小缩放
+- 点击穿透，不阻挡游戏输入
+- 快捷键驱动交互
+- 用户配置本地保存
+- 可按分类软隐藏指定点位
+- 可打包为便携式单文件 exe
+- 中文界面本地化
+
+## 工作方式
+
+工具从 JSON 文件加载地图 POI 数据，并把点位投影到可配置的屏幕矩形区域内。
+坐标会从《猎杀：对决》的 4096x4096 地图网格转换为归一化屏幕坐标，再以简洁图形绘制，兼顾清晰度和性能。
+
+本工具不会修改游戏文件，不会注入游戏进程，也不会钩取游戏。
+它只是一个运行在游戏窗口上方的独立分层窗口。
+
+## 文件存储
+
+首次启动时，程序会创建以下目录：
+
+```text
+%LOCALAPPDATA%\HuntOverlay\
+```
+
+该目录包含：
+
+- `data.json` — 地图 POI 坐标数据。
+- `poiData.json` — POI 样式定义，例如半径和默认颜色。
+- `config.json` — 用户设置，包括已启用分类、颜色、当前地图、隐藏点位和全局大小缩放。
+
+对这些文件的运行时修改会在重启和更新后保留。
+
+## 快捷键
+
+覆盖层控制：
+
+| 快捷键 | 作用 |
+|--------|------|
+| 反引号 `` ` ``（通常在 Esc 下方） | 切换总开关 |
+| Tab | 显示或隐藏覆盖层 |
+| H | 隐藏覆盖层 |
+| 1 2 3 4 | 在控制面板启用后，切换地图 |
+| Ctrl + Alt + Shift + Delete | 软隐藏当前鼠标指向的 POI |
+
+关于软隐藏：
+
+- 只隐藏当前分类下的该点位。
+- 不会从 JSON 数据文件中删除点位。
+- 隐藏状态会保存到配置文件。
+
+## 控制面板
+
+控制面板支持：
+
+- 启用或禁用 POI 分类
+- 修改分类颜色
+- 手动切换地图
+- 启用数字键切图
+- 调整全局 POI 大小缩放
+- 查看和修改快捷键
+
+控制面板会保持置顶，不影响游戏操作。
+
+## 全局 POI 缩放
+
+全局大小缩放可以在不编辑 JSON 文件的情况下放大或缩小所有 POI。
+
+- 减小和增大按钮可按步进调整
+- 数字输入框可精确设置缩放值
+- 缩放会应用到所有 POI 分类
+- 数值会保存到配置文件
+
+---
+
+## 安装
+
+### 方式一：使用预构建可执行文件
+
+1. 下载发布的可执行文件
+2. 运行可执行文件
+3. 首次启动时，程序会自动创建所需文件
+4. 启动《猎杀：对决》并按快捷键打开覆盖层
+
+### 方式二：从源码运行
+
+要求：
+
+- Python 3.10 – 3.13
+- PySide6
+
+安装依赖并运行：
+
+```bash
+pip install pyside6
+python HuntOverlay.py
+```
+
+---
+
+## 构建可执行文件
+
+推荐在 Windows 本机环境中构建，不要在 WSL 里打包 Windows exe。
+
+项目提供了一键构建脚本 `build_windows.bat`，双击即可运行（无需管理员权限，
+但需提前安装好 Python 3.10–3.13）。脚本会自动检查必要文件、创建或复用 `.venv`、
+安装锁定版本的 `PySide6` 与 `pyinstaller`，然后执行打包。它会优先复用项目已有虚拟环境；
+如果没有，会按 3.13 → 3.10 的顺序寻找可用的 Python（Windows `py` launcher 或 mise 安装的版本）。
+
+### 用法
+
+```bat
+build_windows.bat                       :: 目录版（默认）
+build_windows.bat onefile               :: 单文件便携版
+build_windows.bat both                  :: 同时构建两种
+build_windows.bat both clean            :: 构建前清理旧缓存
+build_windows.bat onedir clean nopause  :: 自动化场景，跳过结束时的暂停
+```
+
+可选参数：
+
+- `clean` — 构建前清理 `build\`、`dist\`、`*.spec`，避免复用旧缓存打出过时产物。
+- `nopause` — 构建结束后不暂停等待按键，便于接入自动化/CI。
+
+### 产物路径
+
+- 目录版：`dist\HuntOverlay\HuntOverlay.exe`
+- 单文件版：`dist\HuntOverlay-portable.exe`
+
+> 目录版与单文件版使用不同名称，因此 `both` 模式下两者不会互相覆盖。
+> 单文件版首次启动需解压到临时目录，会有几秒黑屏，属正常现象；追求即点即开建议用目录版。
+
+### 自定义 Python
+
+如果自动发现找不到合适的 Python，可设置环境变量指向 `python.exe`：
+
+```powershell
+$env:HUNTOVERLAY_PYTHON = "C:\Path\to\python.exe"
+.\build_windows.bat
+```
+
+### 手动构建
+
+不使用脚本时，也可以手动打包单文件版：
+
+```powershell
+py -m PyInstaller --noconfirm --onefile --windowed --name HuntOverlay-portable --icon myicon.ico --add-data "data.json;." --add-data "poiData.json;." --add-data "myicon.ico;." HuntOverlay.py
+```
+
+输出位于 `dist\HuntOverlay-portable.exe`。
+
+## Windows SmartScreen 警告
+
+因为应用没有签名，Windows 首次运行时可能显示 SmartScreen 警告。这是未签名可执行文件的正常行为。
+
+点击「更多信息」→「仍要运行」即可。
+
+如果要永久消除该警告，需要使用受信任证书对可执行文件进行代码签名。本项目当前不提供代码签名。
+
+## 许可证
+
+本项目使用 MIT License。你可以自由使用、修改、再分发或集成到其他项目中，前提是保留原作者署名与许可证。
+完整内容请查看 `LICENSE` 文件。
+
+## 作者与致谢
+
+- 原作者：sKhaled（[HuntOverlay-by-sKhaled](https://github.com/uzpj/HuntOverlay-by-sKhaled)）
+- 本分支：在原项目基础上进行中文本地化与功能扩展。
+
+欢迎提交改进、贡献代码或创建分支版本。

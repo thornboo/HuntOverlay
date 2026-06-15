@@ -1,0 +1,7 @@
+# Windows build scripts must keep CRLF line endings.
+# build_windows.ps1 is UTF-8 with BOM so Windows PowerShell 5.1 (GBK locale)
+# decodes its Chinese text correctly; do not let git alter its bytes.
+build_windows.ps1 -text
+build_windows.bat -text
+*.ps1 text eol=crlf
+*.bat text eol=crlf

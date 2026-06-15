@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("onedir", "onefile", "both")]
     [string]$Mode = "onedir",
     [switch]$Clean

@@ -1,0 +1,41 @@
+"""Windows window-layer helpers.
+
+SAFETY: this module only operates on *our own* window (click-through,
+always-on-top) and reads global key state for hotkeys. It never reads or
+writes another process's memory, and never touches the game process.
+
+ctypes/user32 is bound lazily so this module imports cleanly on non-Windows
+platforms (e.g. for static checks and unit-test collection); the actual
+calls only run on Windows.
+"""
+
+import ctypes
+
+_user32 = None
+
+
+def _u32():
+    global _user32
+    if _user32 is None:
+        _user32 = ctypes.windll.user32  # only resolvable on Windows
+    return _user32
+
+
+def key(vk: int) -> bool:
+    """True if the given virtual-key is currently pressed."""
+    return (_u32().GetAsyncKeyState(vk) & 0x8000) != 0
+
+
+def topmost(hwnd: int) -> None:
+    try:
+        _u32().SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x1 | 0x2 | 0x10 | 0x40)
+    except Exception:
+        pass
+
+
+def click_through(hwnd: int) -> None:
+    try:
+        style = _u32().GetWindowLongW(hwnd, -20)
+        _u32().SetWindowLongW(hwnd, -20, style | 0x80000 | 0x80 | 0x8000000 | 0x20)
+    except Exception:
+        pass

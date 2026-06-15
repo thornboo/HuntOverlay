@@ -56,15 +56,29 @@ ACTION_LABELS_ZH = {
     "toggle_master": "总开关",
     "toggle_overlay": "显示/隐藏覆盖层",
     "hide_overlay": "隐藏覆盖层",
-    "map_1": "地图 1  Stillwater",
-    "map_2": "地图 2  Lawson",
-    "map_3": "地图 3  DeSalle",
-    "map_4": "地图 4  Mammon",
+    "map_1": "地图 1  静水湾",
+    "map_2": "地图 2  罗森三角洲",
+    "map_3": "地图 3  德萨尔",
+    "map_4": "地图 4  玛门峡谷",
     "hide_hovered": "隐藏鼠标指向点位",
 }
 
 def category_label(category: str, fallback: str) -> str:
     return CATEGORY_LABELS_ZH.get(category, str(fallback))
+
+# Display names for maps. The English names in MAPS remain the canonical keys
+# used for config storage, data.json lookup, and the per-map point cache.
+# These labels are only for what the user sees in the UI.
+MAP_LABELS_ZH = {
+    "Stillwater Bayou": "静水湾",
+    "Lawson Delta": "罗森三角洲",
+    "DeSalle": "德萨尔",
+    "Mammon's Gulch": "玛门峡谷",
+}
+
+def map_display(name: str) -> str:
+    """English canonical map name -> Chinese display label (falls back to the name)."""
+    return MAP_LABELS_ZH.get(name, str(name))
 
 user32 = ctypes.windll.user32
 GetKey = user32.GetAsyncKeyState
@@ -799,10 +813,15 @@ class Panel(QtWidgets.QWidget):
         map_row = QtWidgets.QHBoxLayout()
         map_row.addWidget(QtWidgets.QLabel("地图："))
         self.cmb = QtWidgets.QComboBox()
-        self.cmb.addItems(MAPS)
+        # Show Chinese labels but keep the English canonical name as item data,
+        # so the rest of the app keeps receiving English map keys.
+        for m in MAPS:
+            self.cmb.addItem(map_display(m), m)
         map_row.addWidget(self.cmb, 1)
         tv.addLayout(map_row)
-        self.cmb.currentTextChanged.connect(self.mapSel)
+        self.cmb.currentIndexChanged.connect(
+            lambda _i: self.mapSel.emit(self.cmb.currentData())
+        )
 
         self.chk_nums = QtWidgets.QCheckBox("1-4 数字键切图")
         tv.addWidget(self.chk_nums)
@@ -931,7 +950,8 @@ class Panel(QtWidgets.QWidget):
         chk.blockSignals(False)
 
     def setMap(self, name: str):
-        i = self.cmb.findText(name)
+        # name is the English canonical key; items store it as item data.
+        i = self.cmb.findData(name)
         if i >= 0:
             self.cmb.blockSignals(True)
             self.cmb.setCurrentIndex(i)
@@ -1702,7 +1722,7 @@ class Overlay(QtWidgets.QWidget):
 
         # Map label at top right.
         m = 20
-        txt = f"地图：{self.prof}  ({self.aspect})"
+        txt = f"地图：{map_display(self.prof)}  ({self.aspect})"
         f = p.font()
         f.setBold(True)
         p.setFont(f)

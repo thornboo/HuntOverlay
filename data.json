@@ -7,12 +7,6 @@
     "spawns": [
       {
         "c": [
-          3877,
-          766
-        ]
-      },
-      {
-        "c": [
           4059,
           1260
         ]
@@ -43,12 +37,6 @@
       },
       {
         "c": [
-          3048,
-          3947
-        ]
-      },
-      {
-        "c": [
           2215,
           3945
         ]
@@ -63,12 +51,20 @@
         "c": [
           778,
           4021
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/EXUCh0l.png"
         ]
       },
       {
         "c": [
           159,
           3480
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/fQh7DXD.png"
         ]
       },
       {
@@ -89,20 +85,8 @@
       },
       {
         "c": [
-          46,
-          962
-        ]
-      },
-      {
-        "c": [
           193,
           534
-        ]
-      },
-      {
-        "c": [
-          1169,
-          132
         ]
       },
       {
@@ -137,6 +121,77 @@
           3578,
           185
         ]
+      },
+      {
+        "c": [
+          3859,
+          694
+        ],
+        "d": "spawn adjustment",
+        "u": [
+          "https://i.imgur.com/LFJIVXm.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3864,
+          3596
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/9LvDmnk.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2900,
+          146
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/wCtZRrd.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3600,
+          3913
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/406poI0.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3022,
+          3899
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1170,
+          158
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          14,
+          961
+        ],
+        "d": "",
+        "u": [],
+        "x": false
       }
     ],
     "beetles": [
@@ -146,8 +201,10 @@
           2681
         ],
         "u": [
-          "https://i.imgur.com/IquqkHG.jpg"
-        ]
+          "https://i.imgur.com/IquqkHG.jpg",
+          "https://i.imgur.com/toZOoK0.jpeg"
+        ],
+        "d": "On huge tree middle of field."
       },
       {
         "c": [
@@ -164,17 +221,20 @@
           2069
         ],
         "u": [
-          "https://i.imgur.com/TIZM5wb.jpg"
-        ]
+          "https://i.imgur.com/TIZM5wb.jpg",
+          "https://i.imgur.com/cxLz80o.jpeg"
+        ],
+        "d": "On tree next to the chicken coop"
       },
       {
         "c": [
           2068,
           1613
         ],
-        "d": "",
+        "d": "On the huge tree.",
         "u": [
-          "https://i.imgur.com/InizIcn.jpeg"
+          "https://i.imgur.com/InizIcn.jpeg",
+          "https://i.imgur.com/HROvC4n.jpeg"
         ],
         "x": [
           2184,
@@ -186,9 +246,10 @@
           1820,
           1119
         ],
-        "d": "",
+        "d": "On tree next to wooden plank path.",
         "u": [
-          "https://i.imgur.com/78cuQNq.jpeg"
+          "https://i.imgur.com/78cuQNq.jpeg",
+          "https://i.imgur.com/SlhqHxH.jpeg"
         ],
         "x": false
       },
@@ -197,11 +258,22 @@
           2214,
           3135
         ],
-        "d": "",
+        "d": "On tree by the fence.",
         "u": [
-          "https://i.imgur.com/6zKqHJ4.jpeg"
+          "https://i.imgur.com/6zKqHJ4.jpeg",
+          "https://i.imgur.com/lBWr5uj.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          2939,
+          1796
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/MbZBUpI.jpeg"
+        ]
       }
     ],
     "workbenches": [
@@ -220,9 +292,11 @@
           3423,
           2521
         ],
-        "d": "",
+        "d": "Inside the big house. Top floor.",
         "u": [
-          "https://i.imgur.com/CJ7YnDD.jpeg"
+          "https://i.imgur.com/CJ7YnDD.jpeg",
+          "https://i.imgur.com/QZUhwhr.jpeg",
+          "https://i.imgur.com/jpUuJAJ.jpeg"
         ]
       },
       {
@@ -240,9 +314,11 @@
           2391,
           2536
         ],
-        "d": "",
+        "d": "Inside house. Ground level (1st. floor).",
         "u": [
-          "https://i.imgur.com/KLOdRVM.jpeg"
+          "https://i.imgur.com/KLOdRVM.jpeg",
+          "https://i.imgur.com/Ex2dsfo.jpeg",
+          "https://i.imgur.com/v5wKZdp.jpeg"
         ]
       },
       {
@@ -250,9 +326,11 @@
           1860,
           3230
         ],
-        "d": "",
+        "d": "Inside. Top floor.",
         "u": [
-          "https://i.imgur.com/3i67ntL.jpeg"
+          "https://i.imgur.com/3i67ntL.jpeg",
+          "https://i.imgur.com/YPlEMtA.jpeg",
+          "https://i.imgur.com/MVY85rY.jpeg"
         ]
       },
       {
@@ -260,9 +338,10 @@
           1794,
           3224
         ],
-        "d": "",
+        "d": "Inside small workshop. Ground level.",
         "u": [
-          "https://i.imgur.com/1gojZ0Y.jpeg"
+          "https://i.imgur.com/1gojZ0Y.jpeg",
+          "https://i.imgur.com/PpqwWy3.jpeg"
         ]
       },
       {
@@ -272,7 +351,8 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/tElPT1W.jpeg"
+          "https://i.imgur.com/tElPT1W.jpeg",
+          "https://i.imgur.com/5O8c0it.jpeg"
         ],
         "x": false
       },
@@ -281,9 +361,10 @@
           3484,
           1360
         ],
-        "d": "",
+        "d": "Inside the big house. Top floor.",
         "u": [
-          "https://i.imgur.com/dmhbSyE.jpeg"
+          "https://i.imgur.com/dmhbSyE.jpeg",
+          "https://i.imgur.com/83TD2OX.jpeg"
         ],
         "x": false
       },
@@ -292,9 +373,10 @@
           3437,
           1631
         ],
-        "d": "",
+        "d": "Inside the workshop.",
         "u": [
-          "https://i.imgur.com/47dS7UV.jpeg"
+          "https://i.imgur.com/47dS7UV.jpeg",
+          "https://i.imgur.com/gUlhL7g.jpeg"
         ],
         "x": false
       },
@@ -303,9 +385,10 @@
           3555,
           2600
         ],
-        "d": "",
+        "d": "Inside small shack. 1st floor.",
         "u": [
-          "https://i.imgur.com/wYTl6Ok.jpeg"
+          "https://i.imgur.com/wYTl6Ok.jpeg",
+          "https://i.imgur.com/GXexTgD.jpeg"
         ],
         "x": [
           3479,
@@ -319,7 +402,8 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/ohEG0Ls.jpeg"
+          "https://i.imgur.com/ohEG0Ls.jpeg",
+          "https://i.imgur.com/GkUAOwV.jpeg"
         ],
         "x": false
       },
@@ -328,9 +412,10 @@
           2245,
           3478
         ],
-        "d": "",
+        "d": "Outside little shack. Ground level.",
         "u": [
-          "https://i.imgur.com/68R5YDI.jpeg"
+          "https://i.imgur.com/68R5YDI.jpeg",
+          "https://i.imgur.com/1P1yjMn.jpeg"
         ],
         "x": [
           2243,
@@ -342,9 +427,10 @@
           2399,
           2293
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/vXYT0dI.jpeg"
+          "https://i.imgur.com/vXYT0dI.jpeg",
+          "https://i.imgur.com/V89jyx5.jpeg"
         ],
         "x": [
           2397,
@@ -384,9 +470,10 @@
           3161,
           1843
         ],
-        "d": "",
+        "d": "Inside the barn. Ground level.",
         "u": [
-          "https://i.imgur.com/vhb6af2.jpeg"
+          "https://i.imgur.com/vhb6af2.jpeg",
+          "https://i.imgur.com/KxhtdNd.png"
         ],
         "x": [
           3180,
@@ -398,9 +485,10 @@
           2990,
           1841
         ],
-        "d": "",
+        "d": "Outside by the little hut.",
         "u": [
-          "https://i.imgur.com/phVuIvS.jpeg"
+          "https://i.imgur.com/phVuIvS.jpeg",
+          "https://i.imgur.com/GEyKeST.jpeg"
         ],
         "x": [
           2983,
@@ -412,9 +500,10 @@
           2310,
           1076
         ],
-        "d": "",
+        "d": "Inside the cellar. Ground level.",
         "u": [
-          "https://i.imgur.com/l5VDOud.jpeg"
+          "https://i.imgur.com/l5VDOud.jpeg",
+          "https://i.imgur.com/Xl27upI.jpeg"
         ],
         "x": false
       },
@@ -459,10 +548,11 @@
           1321,
           1427
         ],
-        "d": "",
+        "d": "Inside boss lair. Underground middle section.",
         "u": [
           "https://i.imgur.com/P48AydR.jpeg",
-          "https://i.imgur.com/dhAjMb4.jpeg"
+          "https://i.imgur.com/dhAjMb4.jpeg",
+          "https://i.imgur.com/JRHILoK.jpeg"
         ],
         "x": [
           1327,
@@ -474,9 +564,10 @@
           1316,
           2133
         ],
-        "d": "",
+        "d": "Inside little shack. Ground level.",
         "u": [
-          "https://i.imgur.com/TkJZ9wf.jpeg"
+          "https://i.imgur.com/TkJZ9wf.jpeg",
+          "https://i.imgur.com/FKC743M.jpeg"
         ],
         "x": false
       },
@@ -485,9 +576,10 @@
           1374,
           2248
         ],
-        "d": "",
+        "d": "Inside big shack. Ground level.",
         "u": [
-          "https://i.imgur.com/cCZvR59.jpeg"
+          "https://i.imgur.com/cCZvR59.jpeg",
+          "https://i.imgur.com/8Xvv4tF.jpeg"
         ],
         "x": [
           1368,
@@ -499,9 +591,10 @@
           740,
           3443
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level (1st. floor)",
         "u": [
-          "https://i.imgur.com/lt0VmL1.jpeg"
+          "https://i.imgur.com/lt0VmL1.jpeg",
+          "https://i.imgur.com/aWXAAzg.jpeg"
         ],
         "x": [
           737,
@@ -513,9 +606,10 @@
           862,
           3003
         ],
-        "d": "",
+        "d": "Outside, on the porch.",
         "u": [
-          "https://i.imgur.com/6nRO8Vw.jpeg"
+          "https://i.imgur.com/6nRO8Vw.jpeg",
+          "https://i.imgur.com/JjRDwhI.jpeg"
         ],
         "x": [
           864,
@@ -527,9 +621,10 @@
           205,
           2247
         ],
-        "d": "",
+        "d": "Outside. Ground level.",
         "u": [
-          "https://i.imgur.com/KWQpK0R.jpeg"
+          "https://i.imgur.com/KWQpK0R.jpeg",
+          "https://i.imgur.com/FU5DS4z.jpeg"
         ],
         "x": [
           214,
@@ -566,9 +661,10 @@
           1110,
           676
         ],
-        "d": "",
+        "d": "Inside the small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/L9taGCB.jpeg"
+          "https://i.imgur.com/L9taGCB.jpeg",
+          "https://i.imgur.com/AwHgRBY.jpeg"
         ],
         "x": false
       },
@@ -588,9 +684,10 @@
           2110,
           1790
         ],
-        "d": "New Workbench Ground floor (in Boss Lair)",
+        "d": "Inside boss lair. 1st floor. (ground level)",
         "u": [
-          "https://i.imgur.com/QkmDGHE.jpeg"
+          "https://i.imgur.com/QkmDGHE.jpeg",
+          "https://i.imgur.com/zqgn45U.jpeg"
         ],
         "x": false
       }
@@ -820,6 +917,28 @@
           "https://i.imgur.com/zD0t8ag.png"
         ],
         "x": false
+      },
+      {
+        "c": [
+          2987,
+          3830
+        ],
+        "d": "Sven Ulrich Coffin (Crytek dev)",
+        "u": [
+          "https://i.imgur.com/PghDx0A.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          418,
+          2272
+        ],
+        "d": "Crytek's Surgeons' Needles",
+        "u": [
+          "https://i.imgur.com/pIoJggK.jpeg"
+        ],
+        "x": false
       }
     ],
     "cash_registers": [
@@ -885,16 +1004,6 @@
       },
       {
         "c": [
-          3603,
-          1248
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/fFiHW47.jpg"
-        ]
-      },
-      {
-        "c": [
           3544,
           1188
         ],
@@ -942,14 +1051,6 @@
         "u": [
           "https://i.imgur.com/fBmYqCB.jpg"
         ]
-      },
-      {
-        "c": [
-          3162,
-          2711
-        ],
-        "d": "",
-        "u": []
       },
       {
         "c": [
@@ -1036,7 +1137,7 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/mKYJjs9.jpg"
+          "https://i.imgur.com/xGxDkNr.jpeg"
         ]
       },
       {
@@ -1193,14 +1294,6 @@
         "u": [
           "https://i.imgur.com/bScllaT.jpg"
         ]
-      },
-      {
-        "c": [
-          2575,
-          996
-        ],
-        "d": "",
-        "u": []
       },
       {
         "c": [
@@ -1364,32 +1457,12 @@
       },
       {
         "c": [
-          2125,
-          1779
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/NddJIFD.jpg"
-        ]
-      },
-      {
-        "c": [
           2140,
           1838
         ],
         "d": "",
         "u": [
           "https://i.imgur.com/e7qcKaI.jpg"
-        ]
-      },
-      {
-        "c": [
-          2151,
-          1821
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/8jHjoP7.jpg"
         ]
       },
       {
@@ -1522,14 +1595,6 @@
       },
       {
         "c": [
-          1182,
-          2333
-        ],
-        "d": "",
-        "u": []
-      },
-      {
-        "c": [
           1080,
           2336
         ],
@@ -1577,14 +1642,6 @@
         "u": [
           "https://i.imgur.com/TCaEfaK.jpg"
         ]
-      },
-      {
-        "c": [
-          1138,
-          2133
-        ],
-        "d": "",
-        "u": []
       },
       {
         "c": [
@@ -1746,14 +1803,6 @@
       },
       {
         "c": [
-          414,
-          2288
-        ],
-        "d": "",
-        "u": []
-      },
-      {
-        "c": [
           370,
           2245
         ],
@@ -1836,6 +1885,20 @@
           "https://i.imgur.com/gCfuO0B.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          3580,
+          1179
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/fFiHW47.jpg"
+        ],
+        "x": [
+          3603,
+          1248
+        ]
       }
     ],
     "compounds": [
@@ -1976,7 +2039,7 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/NfPQffi.jpeg"
+          "https://i.imgur.com/ec69HgD.jpeg"
         ]
       },
       {
@@ -2520,6 +2583,16 @@
           "https://i.imgur.com/4xP99SW.png"
         ],
         "x": false
+      },
+      {
+        "c": [
+          1513,
+          507
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/Nstc3kE.png"
+        ]
       }
     ],
     "tarot_cards": [
@@ -2686,6 +2759,53 @@
         ],
         "x": false
       }
+    ],
+    "brutes": [
+      {
+        "c": [
+          1684,
+          3513
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2308,
+          3031
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1194,
+          1725
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          818,
+          820
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          3024,
+          2232
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      }
     ]
   },
   {
@@ -2694,12 +2814,6 @@
     "m": "./images/2.webp",
     "o": "./images/2.svg",
     "spawns": [
-      {
-        "c": [
-          3984,
-          533
-        ]
-      },
       {
         "c": [
           3976,
@@ -2716,12 +2830,6 @@
         "c": [
           4015,
           2729
-        ]
-      },
-      {
-        "c": [
-          3950,
-          3391
         ]
       },
       {
@@ -2762,38 +2870,8 @@
       },
       {
         "c": [
-          55,
-          2643
-        ]
-      },
-      {
-        "c": [
-          47,
-          1824
-        ]
-      },
-      {
-        "c": [
           114,
           1265
-        ]
-      },
-      {
-        "c": [
-          49,
-          674
-        ]
-      },
-      {
-        "c": [
-          582,
-          49
-        ]
-      },
-      {
-        "c": [
-          1103,
-          101
         ]
       },
       {
@@ -2813,6 +2891,139 @@
           3202,
           52
         ]
+      },
+      {
+        "c": [
+          3915,
+          932
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/qaEGV6N.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2928,
+          127
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/O3c6vkL.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1129,
+          178
+        ],
+        "d": "Spawn adjustment",
+        "u": [
+          "https://i.imgur.com/BlgICWY.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1131,
+          179
+        ],
+        "d": "spawn adjustment",
+        "u": [
+          "https://i.imgur.com/sgBrhar.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3951,
+          613
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          110,
+          694
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          623,
+          161
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1873,
+          3949
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/iH5wX8U.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3935,
+          3391
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2079,
+          282
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/7biynON.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          56,
+          1800
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          3800,
+          3095
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/SPgklsl.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          138,
+          2630
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/alhalkO.png"
+        ],
+        "x": false
       }
     ],
     "beetles": [
@@ -2822,8 +3033,10 @@
           2266
         ],
         "u": [
-          "https://i.imgur.com/ZCkXuLq.jpg"
-        ]
+          "https://i.imgur.com/ZCkXuLq.jpg",
+          "https://i.imgur.com/FEKoIrg.jpeg"
+        ],
+        "d": "On tree next to water."
       },
       {
         "c": [
@@ -2831,17 +3044,10 @@
           2999
         ],
         "u": [
-          "https://i.imgur.com/eUKvLy7.jpg"
-        ]
-      },
-      {
-        "c": [
-          1443,
-          3657
+          "https://i.imgur.com/eUKvLy7.jpg",
+          "https://i.imgur.com/Q7O7dzF.jpeg"
         ],
-        "u": [
-          "https://i.imgur.com/x6HtRkR.jpg"
-        ]
+        "d": "On huge tree middle of field."
       },
       {
         "c": [
@@ -2858,19 +3064,43 @@
           2402
         ],
         "u": [
-          "https://i.imgur.com/yxT9Z8B.jpg"
-        ]
+          "https://i.imgur.com/yxT9Z8B.jpg",
+          "https://i.imgur.com/MzAALFz.jpeg"
+        ],
+        "d": "On the tree next to road."
       },
       {
         "c": [
           2657,
           1437
         ],
-        "d": "",
+        "d": "On ruins' walls.",
         "u": [
-          "https://i.imgur.com/XkJss1u.jpeg"
+          "https://i.imgur.com/XkJss1u.jpeg",
+          "https://i.imgur.com/U5GTs7H.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          2906,
+          2497
+        ],
+        "d": "On the big tree.",
+        "u": [
+          "https://i.imgur.com/OYZw02Y.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3011,
+          1175
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/EyNkKTs.jpeg"
+        ]
       }
     ],
     "workbenches": [
@@ -2894,9 +3124,10 @@
           3614,
           498
         ],
-        "d": "",
+        "d": "Inside small house. Ground level.",
         "u": [
-          "https://i.imgur.com/WrcERys.jpeg"
+          "https://i.imgur.com/WrcERys.jpeg",
+          "https://i.imgur.com/MPExj6u.jpeg"
         ],
         "x": false
       },
@@ -2916,9 +3147,10 @@
           3393,
           500
         ],
-        "d": "",
+        "d": "Inside long shack. Ground level.",
         "u": [
-          "https://i.imgur.com/gKR3iUf.jpeg"
+          "https://i.imgur.com/gKR3iUf.jpeg",
+          "https://i.imgur.com/Zqh5tbK.jpeg"
         ],
         "x": false
       },
@@ -2927,9 +3159,10 @@
           3613,
           1344
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/kTVBTn4.jpeg"
+          "https://i.imgur.com/kTVBTn4.jpeg",
+          "https://i.imgur.com/bPnipK9.jpeg"
         ],
         "x": false
       },
@@ -2949,9 +3182,10 @@
           3243,
           2512
         ],
-        "d": "",
+        "d": "Inside little shack. Ground level.",
         "u": [
-          "https://i.imgur.com/lgN9myU.jpeg"
+          "https://i.imgur.com/lgN9myU.jpeg",
+          "https://i.imgur.com/u5utkHU.jpeg"
         ],
         "x": false
       },
@@ -2960,9 +3194,10 @@
           3256,
           3488
         ],
-        "d": "",
+        "d": "Inside big house. Top floor.",
         "u": [
-          "https://i.imgur.com/4UMImXi.jpeg"
+          "https://i.imgur.com/4UMImXi.jpeg",
+          "https://i.imgur.com/kEy7sN9.jpeg"
         ],
         "x": false
       },
@@ -2971,9 +3206,10 @@
           2883,
           3347
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/XprH9ix.jpeg"
+          "https://i.imgur.com/XprH9ix.jpeg",
+          "https://i.imgur.com/bwSrEiS.jpeg"
         ],
         "x": false
       },
@@ -2982,9 +3218,10 @@
           2595,
           3017
         ],
-        "d": "",
+        "d": "Inside small house. Top floor.",
         "u": [
-          "https://i.imgur.com/qLlIW4A.jpeg"
+          "https://i.imgur.com/qLlIW4A.jpeg",
+          "https://i.imgur.com/sQHGLyq.jpeg"
         ],
         "x": false
       },
@@ -3004,9 +3241,10 @@
           2873,
           1802
         ],
-        "d": "",
+        "d": "Inside big shack. Ground level.",
         "u": [
-          "https://i.imgur.com/6wzrQkK.jpeg"
+          "https://i.imgur.com/6wzrQkK.jpeg",
+          "https://i.imgur.com/ieTDlwB.jpeg"
         ],
         "x": false
       },
@@ -3017,7 +3255,8 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/kRYyS9t.jpeg"
+          "https://i.imgur.com/kRYyS9t.jpeg",
+          "https://i.imgur.com/HieqgQy.jpeg"
         ],
         "x": [
           2461,
@@ -3029,9 +3268,10 @@
           2169,
           2022
         ],
-        "d": "",
+        "d": "Inside house. Ground level.",
         "u": [
-          "https://i.imgur.com/gJvo3mG.jpeg"
+          "https://i.imgur.com/gJvo3mG.jpeg",
+          "https://i.imgur.com/ggegCSY.jpeg"
         ],
         "x": false
       },
@@ -3040,9 +3280,10 @@
           1840,
           3568
         ],
-        "d": "",
+        "d": "Inside huge house. Ground level.",
         "u": [
-          "https://i.imgur.com/JQCda10.jpeg"
+          "https://i.imgur.com/JQCda10.jpeg",
+          "https://i.imgur.com/ZdHJIdw.jpeg"
         ],
         "x": false
       },
@@ -3093,9 +3334,10 @@
           1545,
           535
         ],
-        "d": "",
+        "d": "Inside small house. Ground level.",
         "u": [
-          "https://i.imgur.com/c6Wwuup.jpeg"
+          "https://i.imgur.com/c6Wwuup.jpeg",
+          "https://i.imgur.com/Gdnz3hV.jpeg"
         ],
         "x": [
           1540,
@@ -3104,24 +3346,14 @@
       },
       {
         "c": [
-          556,
-          815
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/3w5zpV0.jpeg"
-        ],
-        "x": false
-      },
-      {
-        "c": [
           626,
           790
         ],
-        "d": "",
+        "d": "Inside Big house. Top floor.",
         "u": [
           "https://i.imgur.com/JyDwUAp.jpeg",
-          "https://i.imgur.com/kbAie2D.jpeg"
+          "https://i.imgur.com/kbAie2D.jpeg",
+          "https://i.imgur.com/5nT7lP4.jpeg"
         ],
         "x": [
           626,
@@ -3133,9 +3365,10 @@
           587,
           1547
         ],
-        "d": "",
+        "d": "Inside long shack. Ground level.",
         "u": [
-          "https://i.imgur.com/1RtKSCb.jpeg"
+          "https://i.imgur.com/1RtKSCb.jpeg",
+          "https://i.imgur.com/578fvTY.jpeg"
         ],
         "x": false
       },
@@ -3163,23 +3396,13 @@
       },
       {
         "c": [
-          774,
-          2788
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/zVQYn1O.jpeg"
-        ],
-        "x": false
-      },
-      {
-        "c": [
           735,
           3469
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/QeE0xaM.jpeg"
+          "https://i.imgur.com/QeE0xaM.jpeg",
+          "https://i.imgur.com/ddI0656.jpeg"
         ],
         "x": [
           734,
@@ -3191,9 +3414,10 @@
           803,
           2607
         ],
-        "d": "",
+        "d": "Inside. Ground level.",
         "u": [
-          "https://i.imgur.com/7RMu69Z.jpeg"
+          "https://i.imgur.com/7RMu69Z.jpeg",
+          "https://i.imgur.com/KETP0rU.jpeg"
         ],
         "x": [
           811,
@@ -3205,9 +3429,10 @@
           2272,
           2093
         ],
-        "d": "",
+        "d": "Inside big house. ground level.",
         "u": [
-          "https://i.imgur.com/HoWynpd.jpeg"
+          "https://i.imgur.com/HoWynpd.jpeg",
+          "https://i.imgur.com/iVY6LLp.jpeg"
         ],
         "x": [
           2257,
@@ -3219,9 +3444,10 @@
           1607,
           3699
         ],
-        "d": "",
+        "d": "Inside long shack. Ground level.",
         "u": [
-          "https://i.imgur.com/zgcSvoa.jpeg"
+          "https://i.imgur.com/zgcSvoa.jpeg",
+          "https://i.imgur.com/ZA96fne.jpeg"
         ],
         "x": false
       },
@@ -3258,9 +3484,10 @@
           3681,
           1880
         ],
-        "d": "",
+        "d": "Inside small house. Ground level.",
         "u": [
-          "https://i.imgur.com/z5ldE6i.jpeg"
+          "https://i.imgur.com/z5ldE6i.jpeg",
+          "https://i.imgur.com/wWyGvSA.jpeg"
         ],
         "x": [
           3652,
@@ -3272,11 +3499,49 @@
           3082,
           1879
         ],
-        "d": "",
+        "d": "Inside main house. Top floor.",
         "u": [
-          "https://i.imgur.com/lX6aBYe.jpeg"
+          "https://i.imgur.com/lX6aBYe.jpeg",
+          "https://i.imgur.com/0xH1U6h.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          570,
+          858
+        ],
+        "d": "Inside small house. Ground level.",
+        "u": [
+          "https://i.imgur.com/3w5zpV0.jpeg",
+          "https://i.imgur.com/kApc1Bc.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          769,
+          2792
+        ],
+        "d": "Inside. Ground level.",
+        "u": [
+          "https://i.imgur.com/zVQYn1O.jpeg",
+          "https://i.imgur.com/M7M1Mj6.jpeg"
+        ],
+        "x": [
+          774,
+          2788
+        ]
+      },
+      {
+        "c": [
+          783,
+          2781
+        ],
+        "d": "Inside. Ground level.",
+        "u": [
+          "https://i.imgur.com/6lO1o1b.jpeg"
+        ]
       }
     ],
     "easter_eggs": [
@@ -3659,14 +3924,6 @@
         "u": [
           "https://i.imgur.com/biZ9wfk.jpg"
         ]
-      },
-      {
-        "c": [
-          2627,
-          590
-        ],
-        "d": "",
-        "u": []
       },
       {
         "c": [
@@ -4217,6 +4474,20 @@
         "u": [
           "https://i.imgur.com/55r3iwK.jpg"
         ]
+      },
+      {
+        "c": [
+          2623,
+          571
+        ],
+        "d": "Inside under the table in small room.",
+        "u": [
+          "https://i.imgur.com/u2hRODY.jpeg"
+        ],
+        "x": [
+          2627,
+          590
+        ]
       }
     ],
     "compounds": [
@@ -4392,16 +4663,6 @@
       },
       {
         "c": [
-          2925,
-          2784
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/TDpLHfn.jpeg"
-        ]
-      },
-      {
-        "c": [
           2477,
           2660
         ],
@@ -4541,6 +4802,16 @@
           "https://i.imgur.com/uIFdeOX.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          2994,
+          2966
+        ],
+        "d": "Moved",
+        "u": [
+          "https://i.imgur.com/Gc4FSg2.jpeg"
+        ]
       }
     ],
     "melee_weapons": [
@@ -4919,7 +5190,9 @@
           3854
         ],
         "d": "",
-        "u": [],
+        "u": [
+          "https://i.imgur.com/r7cisdk.jpeg"
+        ],
         "x": false
       },
       {
@@ -4948,7 +5221,9 @@
           4002
         ],
         "d": "",
-        "u": [],
+        "u": [
+          "https://i.imgur.com/mifm1pR.jpeg"
+        ],
         "x": false
       },
       {
@@ -5032,6 +5307,17 @@
         "d": "",
         "u": [
           "https://i.imgur.com/oiBXvXU.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          288,
+          506
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/Tr4y8hV.jpeg"
         ],
         "x": false
       }
@@ -5240,6 +5526,46 @@
         ],
         "x": false
       }
+    ],
+    "brutes": [
+      {
+        "c": [
+          3225,
+          714
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/LBMmFGD.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2547,
+          2459
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1733,
+          2410
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2380,
+          1180
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      }
     ]
   },
   {
@@ -5262,32 +5588,14 @@
       },
       {
         "c": [
-          4051,
-          1243
-        ]
-      },
-      {
-        "c": [
           3981,
           2004
         ]
       },
       {
         "c": [
-          3998,
-          2691
-        ]
-      },
-      {
-        "c": [
           3983,
           3144
-        ]
-      },
-      {
-        "c": [
-          4059,
-          3765
         ]
       },
       {
@@ -5300,12 +5608,6 @@
         "c": [
           2940,
           3903
-        ]
-      },
-      {
-        "c": [
-          2597,
-          3908
         ]
       },
       {
@@ -5340,26 +5642,8 @@
       },
       {
         "c": [
-          80,
-          2916
-        ]
-      },
-      {
-        "c": [
-          65,
-          2513
-        ]
-      },
-      {
-        "c": [
           84,
           1911
-        ]
-      },
-      {
-        "c": [
-          134,
-          1142
         ]
       },
       {
@@ -5380,20 +5664,8 @@
       },
       {
         "c": [
-          833,
-          91
-        ]
-      },
-      {
-        "c": [
           1194,
           60
-        ]
-      },
-      {
-        "c": [
-          1605,
-          44
         ]
       },
       {
@@ -5404,21 +5676,160 @@
       },
       {
         "c": [
-          2377,
-          64
-        ]
-      },
-      {
-        "c": [
-          2677,
-          118
-        ]
-      },
-      {
-        "c": [
           3027,
           80
         ]
+      },
+      {
+        "c": [
+          671,
+          3951
+        ],
+        "d": "spawnpoint",
+        "u": [
+          "https://i.imgur.com/tSp0EWg.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3926,
+          2333
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/gcfHM0P.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3891,
+          2878
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/bdCLYIB.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2371,
+          162
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/hTkwLz6.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1660,
+          4
+        ],
+        "d": "spawn adjustment",
+        "u": [
+          "https://i.imgur.com/vVdjKGf.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          157,
+          2458
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1060,
+          3956
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/iREIiB5.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2563,
+          3816
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/84amYlv.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          4084,
+          1230
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          249,
+          1254
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          131,
+          2816
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          3960,
+          2664
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          838,
+          155
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2686,
+          203
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          3804,
+          3589
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/jAg59Cy.png"
+        ],
+        "x": false
       }
     ],
     "beetles": [
@@ -5428,8 +5839,10 @@
           1367
         ],
         "u": [
-          "https://i.imgur.com/FEed3br.jpg"
-        ]
+          "https://i.imgur.com/FEed3br.jpg",
+          "https://i.imgur.com/W2PnZhl.jpeg"
+        ],
+        "d": "On tree stump."
       },
       {
         "c": [
@@ -5437,8 +5850,10 @@
           1982
         ],
         "u": [
-          "https://i.imgur.com/9RE8ReL.jpg"
-        ]
+          "https://i.imgur.com/9RE8ReL.jpg",
+          "https://i.imgur.com/L535tQW.jpeg"
+        ],
+        "d": "On the tree stump middle of river."
       },
       {
         "c": [
@@ -5446,8 +5861,10 @@
           2917
         ],
         "u": [
-          "https://i.imgur.com/nQQs1fS.jpg"
-        ]
+          "https://i.imgur.com/nQQs1fS.jpg",
+          "https://i.imgur.com/yv8TE5N.jpeg"
+        ],
+        "d": "On tree next to road."
       },
       {
         "c": [
@@ -5459,6 +5876,38 @@
           "https://imgur.com/EsgaakM.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          2826,
+          911
+        ],
+        "d": "On the stone wall.",
+        "u": [
+          "https://i.imgur.com/x6wNGov.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2390,
+          2744
+        ],
+        "d": "Between train tracks on tree.",
+        "u": [
+          "https://i.imgur.com/kxXDrOB.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1276,
+          2058
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/d6OcYR9.jpeg"
+        ]
       }
     ],
     "workbenches": [
@@ -5467,9 +5916,10 @@
           3656,
           3232
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/hvibra8.jpeg"
+          "https://i.imgur.com/hvibra8.jpeg",
+          "https://i.imgur.com/CdyRgKK.jpeg"
         ]
       },
       {
@@ -5487,9 +5937,10 @@
           645,
           2656
         ],
-        "d": "",
+        "d": "Inside boss lair. 1st floor. (ground level)",
         "u": [
-          "https://i.imgur.com/ZHaqGlA.jpeg"
+          "https://i.imgur.com/ZHaqGlA.jpeg",
+          "https://i.imgur.com/SeZiiLR.jpeg"
         ]
       },
       {
@@ -5507,30 +5958,13 @@
           3312,
           773
         ],
-        "d": "Weapon Oil on ground",
+        "d": "Weapon Oil on ground and on table",
         "u": [
           "https://i.imgur.com/SW1191E.jpeg",
-          "https://i.imgur.com/OncnPav.jpeg"
-        ]
-      },
-      {
-        "c": [
-          3710,
-          2999
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/UkMBJXU.jpeg"
-        ]
-      },
-      {
-        "c": [
-          3548,
-          1434
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/MCczta6.jpeg"
+          "https://i.imgur.com/OncnPav.jpeg",
+          "https://i.imgur.com/4RW71vK.jpeg",
+          "https://i.imgur.com/t5r7Fj0.jpeg",
+          "https://i.imgur.com/FFt4hYa.jpeg"
         ]
       },
       {
@@ -5538,9 +5972,10 @@
           612,
           1671
         ],
-        "d": "",
+        "d": "Inside big house. Ground level. (1st floor)",
         "u": [
-          "https://i.imgur.com/IEvOtc1.jpeg"
+          "https://i.imgur.com/IEvOtc1.jpeg",
+          "https://i.imgur.com/lynJZ52.jpeg"
         ]
       },
       {
@@ -5548,9 +5983,11 @@
           3658,
           1452
         ],
-        "d": "",
+        "d": "Inside the big house. Ground level.",
         "u": [
-          "https://i.imgur.com/A8LkruS.jpeg"
+          "https://i.imgur.com/A8LkruS.jpeg",
+          "https://i.imgur.com/zYxgfsw.png",
+          "https://i.imgur.com/lkKRkej.jpeg"
         ],
         "x": [
           3649,
@@ -5564,7 +6001,8 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/1FIirgu.jpeg"
+          "https://i.imgur.com/1FIirgu.jpeg",
+          "https://i.imgur.com/WbhSo87.jpeg"
         ],
         "x": [
           3289,
@@ -5587,9 +6025,10 @@
           2380,
           2918
         ],
-        "d": "",
+        "d": "Inside shack. Ground level.",
         "u": [
-          "https://i.imgur.com/T5ooRg5.jpeg"
+          "https://i.imgur.com/T5ooRg5.jpeg",
+          "https://i.imgur.com/UshJFF3.jpeg"
         ],
         "x": false
       },
@@ -5598,9 +6037,10 @@
           1888,
           3360
         ],
-        "d": "",
+        "d": "Inside hardware store. Ground level.",
         "u": [
-          "https://i.imgur.com/p3N1aPx.jpeg"
+          "https://i.imgur.com/p3N1aPx.jpeg",
+          "https://i.imgur.com/ENw8xYF.jpeg"
         ],
         "x": [
           1880,
@@ -5612,9 +6052,10 @@
           1608,
           3608
         ],
-        "d": "",
+        "d": "Inside little shack. Ground level.",
         "u": [
-          "https://i.imgur.com/cTg3tp5.jpeg"
+          "https://i.imgur.com/cTg3tp5.jpeg",
+          "https://i.imgur.com/RX6XfWi.jpeg"
         ],
         "x": [
           1601,
@@ -5626,9 +6067,10 @@
           911,
           3386
         ],
-        "d": "",
+        "d": "Inside blacksmiths'. Ground level.",
         "u": [
-          "https://i.imgur.com/2Ja9uEz.jpeg"
+          "https://i.imgur.com/2Ja9uEz.jpeg",
+          "https://i.imgur.com/Kn4pN49.jpeg"
         ],
         "x": [
           940,
@@ -5654,9 +6096,10 @@
           699,
           2638
         ],
-        "d": "",
+        "d": "Inside little shack. 1st. floor. (ground level)",
         "u": [
-          "https://i.imgur.com/5MS65Zc.jpeg"
+          "https://i.imgur.com/5MS65Zc.jpeg",
+          "https://i.imgur.com/DxIvYhe.jpeg"
         ],
         "x": [
           710,
@@ -5668,9 +6111,10 @@
           664,
           1526
         ],
-        "d": "",
+        "d": "Inside small house. Ground level.",
         "u": [
-          "https://i.imgur.com/pPgrL64.jpeg"
+          "https://i.imgur.com/pPgrL64.jpeg",
+          "https://i.imgur.com/Cm9FnP3.jpeg"
         ],
         "x": [
           654,
@@ -5682,9 +6126,10 @@
           1302,
           1508
         ],
-        "d": "",
+        "d": "Inside long shack. Ground level.",
         "u": [
-          "https://i.imgur.com/8d8sh1i.jpeg"
+          "https://i.imgur.com/8d8sh1i.jpeg",
+          "https://i.imgur.com/foMAcvP.jpeg"
         ],
         "x": false
       },
@@ -5693,9 +6138,10 @@
           646,
           1005
         ],
-        "d": "",
+        "d": "Inside small house. (blacksmith & carpenter). Ground level.",
         "u": [
-          "https://i.imgur.com/YXqaaGV.jpeg"
+          "https://i.imgur.com/YXqaaGV.jpeg",
+          "https://i.imgur.com/NuMMzzJ.jpeg"
         ],
         "x": false
       },
@@ -5715,9 +6161,10 @@
           1358,
           463
         ],
-        "d": "",
+        "d": "Outside the tall house.",
         "u": [
-          "https://i.imgur.com/9gxzmmY.jpeg"
+          "https://i.imgur.com/9gxzmmY.jpeg",
+          "https://i.imgur.com/kiDnmDx.jpeg"
         ],
         "x": false
       },
@@ -5728,7 +6175,9 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/b3uJbeY.jpeg"
+          "https://i.imgur.com/b3uJbeY.jpeg",
+          "https://i.imgur.com/LzNEyh7.jpeg",
+          "https://i.imgur.com/T6lYAGQ.jpeg"
         ],
         "x": false
       },
@@ -5748,9 +6197,10 @@
           1931,
           2095
         ],
-        "d": "",
+        "d": "Under the boss lair. Ground level.",
         "u": [
-          "https://i.imgur.com/Bt9iSJC.jpeg"
+          "https://i.imgur.com/Bt9iSJC.jpeg",
+          "https://i.imgur.com/0KuhDG3.jpeg"
         ],
         "x": false
       },
@@ -5759,9 +6209,11 @@
           1414,
           2836
         ],
-        "d": "",
+        "d": "Inside long house. Ground level.",
         "u": [
-          "https://i.imgur.com/763q6ZX.jpeg"
+          "https://i.imgur.com/763q6ZX.jpeg",
+          "https://i.imgur.com/yZLGXDi.jpeg",
+          "https://i.imgur.com/QRrSx4R.jpeg"
         ],
         "x": false
       },
@@ -5770,9 +6222,10 @@
           2517,
           1858
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/lWomPe8.jpeg"
+          "https://i.imgur.com/lWomPe8.jpeg",
+          "https://i.imgur.com/SVQ2oSr.jpeg"
         ],
         "x": false
       },
@@ -5781,9 +6234,10 @@
           2816,
           1770
         ],
-        "d": "",
+        "d": "Inside big house. Top Floor.",
         "u": [
-          "https://i.imgur.com/tECx4Vw.jpeg"
+          "https://i.imgur.com/tECx4Vw.jpeg",
+          "https://i.imgur.com/q3TlN80.jpeg"
         ],
         "x": false
       },
@@ -5803,13 +6257,39 @@
           1996,
           2964
         ],
-        "d": "",
+        "d": "Outside on porch. Ground level.",
         "u": [
-          "https://i.imgur.com/oJM6jyB.jpeg"
+          "https://i.imgur.com/oJM6jyB.jpeg",
+          "https://i.imgur.com/OacWqva.jpeg"
         ],
         "x": [
           1995,
           2961
+        ]
+      },
+      {
+        "c": [
+          3474,
+          1341
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/MCczta6.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3726,
+          2987
+        ],
+        "d": "Outside the house.",
+        "u": [
+          "https://i.imgur.com/OEDgVGw.jpeg"
+        ],
+        "x": [
+          3710,
+          2999
         ]
       }
     ],
@@ -5819,7 +6299,7 @@
           100,
           1472
         ],
-        "d": "",
+        "d": "Utah Monolith",
         "u": [
           "https://i.imgur.com/j8M9Lcv.jpeg"
         ],
@@ -5861,6 +6341,221 @@
           "https://i.imgur.com/OZR8Z8a.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          2841,
+          1762
+        ],
+        "d": "Level Designer Faces",
+        "u": [
+          "https://i.imgur.com/J6NfsRd.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3050,
+          784
+        ],
+        "d": "Kissing Ducks",
+        "u": [
+          "https://i.imgur.com/5J4m18T.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3441,
+          975
+        ],
+        "d": "White Alligator",
+        "u": [
+          "https://i.imgur.com/pSXTGgQ.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          4040,
+          1338
+        ],
+        "d": "127 Hours",
+        "u": [
+          "https://i.imgur.com/BpMP3Jz.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          4087,
+          148
+        ],
+        "d": "UFO",
+        "u": [
+          "https://i.imgur.com/1CSxq58.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          684,
+          409
+        ],
+        "d": "Bob Ross",
+        "u": [
+          "https://i.imgur.com/78JAGHC.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          405,
+          1731
+        ],
+        "d": "Forrest Gump",
+        "u": [
+          "https://i.imgur.com/aycdPze.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          10,
+          2680
+        ],
+        "d": "Cowboy Pumpkin",
+        "u": [
+          "https://i.imgur.com/qwo8jtw.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          858,
+          3591
+        ],
+        "d": "Port Sulphur Band",
+        "u": [
+          "https://i.imgur.com/Y1PjHRD.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          975,
+          3572
+        ],
+        "d": "Crytek's Surgeons' Needles",
+        "u": [
+          "https://i.imgur.com/dP2SbTz.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1283,
+          3518
+        ],
+        "d": "Buster Scruggs",
+        "u": [
+          "https://i.imgur.com/hdzsbdv.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1592,
+          3083
+        ],
+        "d": "Forrest Gump",
+        "u": [
+          "https://i.imgur.com/2wcLSi7.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1631,
+          2541
+        ],
+        "d": "Vampire",
+        "u": [
+          "https://i.imgur.com/gvNzLHz.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1613,
+          2559
+        ],
+        "d": "The Weeping Angels (Doctor Who)",
+        "u": [
+          "https://i.imgur.com/XxwiZGQ.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3425,
+          2808
+        ],
+        "d": "Hatfish",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          3467,
+          3374
+        ],
+        "d": "Godfather",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          975,
+          3640
+        ],
+        "d": "Sven Ulrich Coffin (Crytek dev)",
+        "u": [
+          "https://i.imgur.com/SdoiaWu.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          82,
+          240
+        ],
+        "d": "Dark Sight Secret (Dev Face)",
+        "u": [
+          "https://i.imgur.com/uhNVTi1.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3270,
+          2391
+        ],
+        "d": "Vombuz Tractor",
+        "u": [
+          "https://i.imgur.com/kfJBGxf.jpeg"
+        ]
+      },
+      {
+        "c": [
+          3482,
+          2415
+        ],
+        "d": "RachtaZ Toilet (Did you know? Reference to RachtaZ Shorts he used to make)",
+        "u": [
+          "https://i.imgur.com/GusrHiw.jpeg",
+          "https://i.imgur.com/EotcIHK.png"
+        ]
       }
     ],
     "cash_registers": [
@@ -7542,17 +8237,6 @@
       },
       {
         "c": [
-          3697,
-          3614
-        ],
-        "d": "",
-        "u": [
-          "https://imgur.com/WobA1P3.jpeg"
-        ],
-        "x": false
-      },
-      {
-        "c": [
           2935,
           2236
         ],
@@ -8101,7 +8785,7 @@
         ],
         "d": "",
         "u": [
-          "https://i.imgur.com/p4aTAjw.jpeg"
+          "https://i.imgur.com/KYdVmSn.jpeg"
         ],
         "x": false
       },
@@ -8188,7 +8872,9 @@
           1604
         ],
         "d": "",
-        "u": [],
+        "u": [
+          "https://i.imgur.com/kYtSDaR.jpeg"
+        ],
         "x": false
       },
       {
@@ -8289,6 +8975,17 @@
         "d": "",
         "u": [
           "https://i.imgur.com/oew4RyJ.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3137,
+          3563
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/cKyMBDG.jpeg"
         ],
         "x": false
       }
@@ -8415,6 +9112,53 @@
         ],
         "x": false
       }
+    ],
+    "brutes": [
+      {
+        "c": [
+          979,
+          2601
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1495,
+          1722
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2733,
+          1278
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          3111,
+          2128
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2135,
+          3340
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      }
     ]
   },
   {
@@ -8433,32 +9177,8 @@
       },
       {
         "c": [
-          4020,
-          3363
-        ],
-        "d": "",
-        "u": []
-      },
-      {
-        "c": [
           3992,
           3077
-        ],
-        "d": "",
-        "u": []
-      },
-      {
-        "c": [
-          3982,
-          2287
-        ],
-        "d": "",
-        "u": []
-      },
-      {
-        "c": [
-          4022,
-          1712
         ],
         "d": "",
         "u": []
@@ -8561,14 +9281,6 @@
       },
       {
         "c": [
-          210,
-          2766
-        ],
-        "d": "",
-        "u": []
-      },
-      {
-        "c": [
           234,
           3176
         ],
@@ -8655,18 +9367,6 @@
       },
       {
         "c": [
-          3411,
-          3820
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/zZvnl6R.jpeg",
-          "https://i.imgur.com/h35pU9B.jpeg"
-        ],
-        "x": false
-      },
-      {
-        "c": [
           3168,
           136
         ],
@@ -8674,18 +9374,6 @@
         "u": [
           "https://i.imgur.com/o3pGllG.jpeg",
           "https://i.imgur.com/cXpZqTv.jpeg"
-        ],
-        "x": false
-      },
-      {
-        "c": [
-          2320,
-          129
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/1NQdX9i.jpeg",
-          "https://i.imgur.com/BFGzVAc.jpeg"
         ],
         "x": false
       },
@@ -8711,6 +9399,110 @@
           "https://i.imgur.com/zFHea6m.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          1158,
+          85
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/VWRGJ3h.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          111,
+          2856
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2909,
+          1
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/jrOrrbV.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          4062,
+          3332
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1003,
+          132
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/uI0FcA3.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3432,
+          3819
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/zZvnl6R.jpeg",
+          "https://i.imgur.com/h35pU9B.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          4081,
+          1711
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2564,
+          152
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/UGsfin2.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2324,
+          93
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/1NQdX9i.jpeg",
+          "https://i.imgur.com/BFGzVAc.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3993,
+          2366
+        ],
+        "d": "",
+        "u": [],
+        "x": false
       }
     ],
     "beetles": [
@@ -8730,9 +9522,10 @@
           2075
         ],
         "u": [
-          "https://i.imgur.com/GhH0Dr6.jpeg"
+          "https://i.imgur.com/GhH0Dr6.jpeg",
+          "https://i.imgur.com/DhIgUWM.jpeg"
         ],
-        "d": "0"
+        "d": "On tree up the hill near river."
       },
       {
         "c": [
@@ -8740,9 +9533,10 @@
           1959
         ],
         "u": [
-          "https://i.imgur.com/SOhvs1e.jpeg"
+          "https://i.imgur.com/SOhvs1e.jpeg",
+          "https://i.imgur.com/srD637C.jpeg"
         ],
-        "d": "0"
+        "d": "On stone wall."
       },
       {
         "c": [
@@ -8750,9 +9544,10 @@
           2570
         ],
         "u": [
-          "https://i.imgur.com/dYmz30B.jpeg"
+          "https://i.imgur.com/dYmz30B.jpeg",
+          "https://i.imgur.com/Vei3FVZ.jpeg"
         ],
-        "d": "0"
+        "d": "On tree."
       },
       {
         "c": [
@@ -8760,9 +9555,31 @@
           2710
         ],
         "u": [
-          "https://i.imgur.com/zLclbxn.jpeg"
+          "https://i.imgur.com/zLclbxn.jpeg",
+          "https://i.imgur.com/hz6HpIr.jpeg"
         ],
-        "d": "0"
+        "d": "On tree."
+      },
+      {
+        "c": [
+          2282,
+          1084
+        ],
+        "d": "On tree down the hill.",
+        "u": [
+          "https://i.imgur.com/CD2nu2L.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1098,
+          1855
+        ],
+        "d": "On stone wall under the tower.",
+        "u": [
+          "https://i.imgur.com/bZ5FS2p.jpeg"
+        ]
       }
     ],
     "workbenches": [
@@ -8772,9 +9589,10 @@
           685
         ],
         "u": [
-          "https://i.imgur.com/gWDk9Jk.jpeg"
+          "https://i.imgur.com/gWDk9Jk.jpeg",
+          "https://i.imgur.com/2knOnu2.jpeg"
         ],
-        "d": "0"
+        "d": "Outside."
       },
       {
         "c": [
@@ -8802,9 +9620,10 @@
           2074
         ],
         "u": [
-          "https://i.imgur.com/pw3sRS2.jpeg"
+          "https://i.imgur.com/pw3sRS2.jpeg",
+          "https://i.imgur.com/YQcogsV.jpeg"
         ],
-        "d": "0"
+        "d": "On top of the big round house."
       },
       {
         "c": [
@@ -8814,7 +9633,7 @@
         "u": [
           "https://i.imgur.com/7lsbZmK.jpeg"
         ],
-        "d": "0"
+        "d": "Inside the little house. Ground level."
       },
       {
         "c": [
@@ -8824,14 +9643,17 @@
         "u": [
           "https://i.imgur.com/x5sf8xg.jpeg"
         ],
-        "d": "0"
+        "d": "Inside. Ground level."
       },
       {
         "c": [
           3106,
           2181
         ],
-        "u": []
+        "u": [
+          "https://i.imgur.com/PFttyLw.jpeg"
+        ],
+        "d": ""
       },
       {
         "c": [
@@ -8839,9 +9661,9 @@
           2090
         ],
         "u": [
-          "https://i.imgur.com/x460XKn.jpeg"
+          "https://i.imgur.com/wV7U93u.jpeg"
         ],
-        "d": "0"
+        "d": "Inside big house. Ground level."
       },
       {
         "c": [
@@ -8849,26 +9671,10 @@
           388
         ],
         "u": [
-          "https://i.imgur.com/mBaqlOl.jpeg"
+          "https://i.imgur.com/mBaqlOl.jpeg",
+          "https://i.imgur.com/FeSx72J.jpeg"
         ],
-        "d": "0"
-      },
-      {
-        "c": [
-          2566,
-          2818
-        ],
-        "u": [
-          "https://i.imgur.com/6d7ypkR.jpeg"
-        ],
-        "d": "0"
-      },
-      {
-        "c": [
-          2662,
-          3168
-        ],
-        "u": []
+        "d": "Inside. Ground level."
       },
       {
         "c": [
@@ -8905,7 +9711,7 @@
         "u": [
           "https://i.imgur.com/UZxaFPn.jpeg"
         ],
-        "d": "0"
+        "d": "Inside the supply room inside the mines."
       },
       {
         "c": [
@@ -8915,7 +9721,7 @@
         "u": [
           "https://i.imgur.com/a83fx2v.jpeg"
         ],
-        "d": ""
+        "d": "Inside. Top floor."
       },
       {
         "c": [
@@ -8925,7 +9731,7 @@
         "u": [
           "https://i.imgur.com/BJy7TwE.jpeg"
         ],
-        "d": ""
+        "d": "Inside. Ground level."
       },
       {
         "c": [
@@ -8943,23 +9749,30 @@
           1712
         ],
         "u": [
-          "https://i.imgur.com/F4YQhNv.jpeg"
+          "https://i.imgur.com/F4YQhNv.jpeg",
+          "https://i.imgur.com/iZ2pYf8.jpeg"
         ],
-        "d": "0"
+        "d": "Inside small shack. Ground level."
       },
       {
         "c": [
           677,
           526
         ],
-        "u": []
+        "u": [
+          "https://i.imgur.com/mlpENVG.jpeg"
+        ],
+        "d": "Inside little shack. Ground level."
       },
       {
         "c": [
           494,
           596
         ],
-        "u": []
+        "u": [
+          "https://i.imgur.com/kxzjeuK.jpeg"
+        ],
+        "d": ""
       },
       {
         "c": [
@@ -8969,7 +9782,7 @@
         "u": [
           "https://i.imgur.com/TSIPlBS.jpeg"
         ],
-        "d": "0"
+        "d": "Inside. Ground level."
       },
       {
         "c": [
@@ -8977,18 +9790,20 @@
           900
         ],
         "u": [
-          "https://i.imgur.com/RzRJSBC.jpeg"
+          "https://i.imgur.com/RzRJSBC.jpeg",
+          "https://i.imgur.com/3mCgQja.jpeg"
         ],
-        "d": ""
+        "d": "Inside. Ground level."
       },
       {
         "c": [
           515,
           2655
         ],
-        "d": "",
+        "d": "Inside big house. Top floor.",
         "u": [
-          "https://i.imgur.com/FdPQr7h.jpeg"
+          "https://i.imgur.com/FdPQr7h.jpeg",
+          "https://i.imgur.com/XCnH9AX.jpeg"
         ]
       },
       {
@@ -9006,9 +9821,10 @@
           492,
           1504
         ],
-        "d": "",
+        "d": "Inside small shack. Ground level.",
         "u": [
-          "https://i.imgur.com/OYCvamI.jpeg"
+          "https://i.imgur.com/OYCvamI.jpeg",
+          "https://i.imgur.com/MUzBIoV.jpeg"
         ]
       },
       {
@@ -9026,7 +9842,7 @@
           3706,
           1812
         ],
-        "d": "",
+        "d": "Inside. Ground level.",
         "u": [
           "https://i.imgur.com/IWTutOr.jpeg"
         ]
@@ -9036,7 +9852,7 @@
           3425,
           1832
         ],
-        "d": "",
+        "d": "Inside. Ground level.",
         "u": [
           "https://i.imgur.com/dNMmTb7.jpeg"
         ]
@@ -9046,7 +9862,7 @@
           2878,
           2159
         ],
-        "d": "",
+        "d": "Inside. Ground level.",
         "u": [
           "https://i.imgur.com/PnU9JBM.jpeg"
         ]
@@ -9056,7 +9872,7 @@
           3708,
           727
         ],
-        "d": "",
+        "d": "Inside. Ground level.",
         "u": [
           "https://i.imgur.com/fEJABbi.jpeg"
         ]
@@ -9066,7 +9882,7 @@
           1655,
           317
         ],
-        "d": "",
+        "d": "Inside the little shack.",
         "u": [
           "https://i.imgur.com/6sZrULR.jpeg"
         ]
@@ -9093,27 +9909,13 @@
       },
       {
         "c": [
-          2107,
-          3249
-        ],
-        "d": "",
-        "u": [
-          "https://i.imgur.com/VHiukMD.jpeg",
-          "https://i.imgur.com/AtsEWfB.jpeg"
-        ],
-        "x": [
-          2115,
-          3248
-        ]
-      },
-      {
-        "c": [
           949,
           3659
         ],
         "d": "Sewing Table (Can spawn Blueprints or Gun Oil)",
         "u": [
-          "https://i.imgur.com/5aY8Skh.jpeg"
+          "https://i.imgur.com/5aY8Skh.jpeg",
+          "https://i.imgur.com/ip55wKL.jpeg"
         ],
         "x": false
       },
@@ -9122,7 +9924,7 @@
           1520,
           2186
         ],
-        "d": "",
+        "d": "Ground level inside mines.",
         "u": [
           "https://i.imgur.com/BqmH8wb.jpeg"
         ],
@@ -9133,9 +9935,44 @@
           1603,
           2671
         ],
-        "d": "",
+        "d": "Inside the supply room inside the mines.",
         "u": [
           "https://i.imgur.com/pRZmZ99.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2553,
+          2804
+        ],
+        "d": "0",
+        "u": [
+          "https://i.imgur.com/6d7ypkR.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2661,
+          3195
+        ],
+        "d": "Outside under shed. Between two roads.",
+        "u": [
+          "https://i.imgur.com/WzJWDk2.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2121,
+          3260
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/VHiukMD.jpeg",
+          "https://i.imgur.com/AtsEWfB.jpeg",
+          "https://i.imgur.com/F014675.jpeg"
         ],
         "x": false
       }
@@ -9167,7 +10004,7 @@
           3325,
           188
         ],
-        "d": "",
+        "d": "Bob Ross",
         "u": [
           "https://i.imgur.com/GlXXoHD.jpeg"
         ]
@@ -9344,6 +10181,107 @@
         "u": [
           "https://i.imgur.com/GsI70Yo.png",
           "https://i.imgur.com/P8Nl96I.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          726,
+          965
+        ],
+        "d": "Sniper Duck",
+        "u": [
+          "https://i.imgur.com/XASL9sV.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1443,
+          173
+        ],
+        "d": "Rat Sacrifice",
+        "u": [
+          "https://i.imgur.com/sHqW8Kp.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2867,
+          272
+        ],
+        "d": "Average Joe (Crytek partner)",
+        "u": [
+          "https://i.imgur.com/DjbE3ts.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2731,
+          379
+        ],
+        "d": "JOC1 Painting  Tribute to a passed family member of a dev",
+        "u": [
+          "https://i.imgur.com/kjDVl5i.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          211,
+          3860
+        ],
+        "d": "Man Behind the Waterfall",
+        "u": [
+          "https://i.imgur.com/gjJJr4m.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3442,
+          3422
+        ],
+        "d": "Bathtub Duck",
+        "u": [
+          "https://i.imgur.com/LtJyovF.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3404,
+          2656
+        ],
+        "d": "Clock Cabin (All models from the game)",
+        "u": [
+          "https://i.imgur.com/OPJ2EjI.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          3386,
+          2258
+        ],
+        "d": "Unkown Trait Poster",
+        "u": [
+          "https://i.imgur.com/1oXHSPH.jpeg"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          2663,
+          3040
+        ],
+        "d": "\"Death Is a Bird Flying\" by the Port Sulphur Band",
+        "u": [
+          "https://i.imgur.com/ZMNRvgV.jpeg",
+          "https://i.imgur.com/KBEGRJy.png",
+          "https://i.imgur.com/u0x3yMs.png"
         ],
         "x": false
       }
@@ -11472,6 +12410,17 @@
           "https://i.imgur.com/8SIyc66.jpeg"
         ],
         "x": false
+      },
+      {
+        "c": [
+          2621,
+          2876
+        ],
+        "d": "1st floor, on bed",
+        "u": [
+          "https://i.imgur.com/bnywI9g.jpeg"
+        ],
+        "x": false
       }
     ],
     "compounds": [
@@ -12496,6 +13445,64 @@
         "u": [
           "https://i.imgur.com/lUa4EIs.jpeg"
         ],
+        "x": false
+      }
+    ],
+    "brutes": [
+      {
+        "c": [
+          3206,
+          2421
+        ],
+        "d": "",
+        "u": [
+          "https://i.imgur.com/Kfvq20B.png"
+        ],
+        "x": false
+      },
+      {
+        "c": [
+          1096,
+          598
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2348,
+          3367
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2444,
+          740
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          1232,
+          3015
+        ],
+        "d": "",
+        "u": [],
+        "x": false
+      },
+      {
+        "c": [
+          2995,
+          1704
+        ],
+        "d": "",
+        "u": [],
         "x": false
       }
     ]

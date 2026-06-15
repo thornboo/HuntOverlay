@@ -55,6 +55,8 @@ Always comply with the game's Terms of Service.
 - Hotkey-driven interaction
 - Locally saved user configuration
 - Per-category soft-hiding of specific POIs
+- One-click select-all / deselect-all for POI categories
+- Control panel anchored to the right edge, vertically centered, clear of the overlay
 - Can be packaged as a portable single-file exe
 - Localized Chinese UI
 
@@ -107,6 +109,7 @@ About soft-hiding:
 The control panel lets you:
 
 - Enable or disable POI categories
+- Select all / deselect all categories in one click
 - Change category colors
 - Switch maps manually
 - Enable number-key map switching

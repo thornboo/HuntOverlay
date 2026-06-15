@@ -56,9 +56,9 @@ ACTION_LABELS_ZH = {
     "toggle_master": "总开关",
     "toggle_overlay": "显示/隐藏覆盖层",
     "hide_overlay": "隐藏覆盖层",
-    "map_1": "地图 1  静水湾",
-    "map_2": "地图 2  罗森三角洲",
-    "map_3": "地图 3  德萨尔",
+    "map_1": "地图 1  静水河口",
+    "map_2": "地图 2  劳森三角洲",
+    "map_3": "地图 3  德萨莱",
     "map_4": "地图 4  玛门峡谷",
     "hide_hovered": "隐藏鼠标指向点位",
 }
@@ -70,9 +70,9 @@ def category_label(category: str, fallback: str) -> str:
 # used for config storage, data.json lookup, and the per-map point cache.
 # These labels are only for what the user sees in the UI.
 MAP_LABELS_ZH = {
-    "Stillwater Bayou": "静水湾",
-    "Lawson Delta": "罗森三角洲",
-    "DeSalle": "德萨尔",
+    "Stillwater Bayou": "静水河口",
+    "Lawson Delta": "劳森三角洲",
+    "DeSalle": "德萨莱",
     "Mammon's Gulch": "玛门峡谷",
 }
 
@@ -810,6 +810,17 @@ class Panel(QtWidgets.QWidget):
 
         tv.addSpacing(6)
 
+        # Bulk enable/disable all POI categories at once.
+        sel_row = QtWidgets.QHBoxLayout()
+        sel_row.setSpacing(6)
+        btn_all = QtWidgets.QPushButton("全选")
+        btn_none = QtWidgets.QPushButton("全不选")
+        btn_all.clicked.connect(lambda: self._set_all_types(True))
+        btn_none.clicked.connect(lambda: self._set_all_types(False))
+        sel_row.addWidget(btn_all)
+        sel_row.addWidget(btn_none)
+        tv.addLayout(sel_row)
+
         map_row = QtWidgets.QHBoxLayout()
         map_row.addWidget(QtWidgets.QLabel("地图："))
         self.cmb = QtWidgets.QComboBox()
@@ -949,6 +960,16 @@ class Panel(QtWidgets.QWidget):
         chip.blockSignals(False)
         chk.blockSignals(False)
 
+    def _set_all_types(self, enabled: bool):
+        """Check or uncheck every POI category at once.
+
+        Signals are left unblocked so each real state change emits typeToggled
+        and the overlay/config update accordingly. setChecked is a no-op (emits
+        nothing) for boxes already in the target state.
+        """
+        for chk, _chip in self.type_widgets.values():
+            chk.setChecked(bool(enabled))
+
     def setMap(self, name: str):
         # name is the English canonical key; items store it as item data.
         i = self.cmb.findData(name)
@@ -1044,7 +1065,7 @@ class Overlay(QtWidgets.QWidget):
         for k in self.type_order:
             self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
 
-        self.panel.move(40, 40)
+        self._position_panel_right_center()
 
         # System tray setup.
         self.tray = None
@@ -1084,6 +1105,7 @@ class Overlay(QtWidgets.QWidget):
             self._hide_panel_to_tray()
         else:
             self.panel.show()
+            self._position_panel_right_center()
         # Timer tick drives input polling and hover updates.
         self.t = QtCore.QTimer(self)
         self.t.timeout.connect(self._tick_safe)
@@ -1148,6 +1170,7 @@ class Overlay(QtWidgets.QWidget):
 
     def _restore_panel_from_tray(self):
         self.panel.showNormal()
+        self._position_panel_right_center()
         self.panel.raise_()
         self.panel.activateWindow()
 
@@ -1404,6 +1427,31 @@ class Overlay(QtWidgets.QWidget):
             max(1, int(rr["rh"] * H))
         )
     
+    def _position_panel_right_center(self):
+        """Place the control panel against the right edge, vertically centered.
+
+        The overlay marker rect lives in the central band of the screen
+        (roughly 31%-69% wide in 16:9), so the right edge stays clear of it.
+        Uses availableGeometry so the Windows taskbar is respected.
+        """
+        screen = QtGui.QGuiApplication.primaryScreen()
+        if screen is None:
+            self.panel.move(40, 40)
+            return
+
+        # Ensure the panel has computed its real size before we measure it.
+        self.panel.adjustSize()
+        avail = screen.availableGeometry()
+        margin = 24
+        pw = self.panel.frameGeometry().width()
+        ph = self.panel.frameGeometry().height()
+
+        x = avail.right() - pw - margin
+        y = avail.top() + max(0, (avail.height() - ph) // 2)
+        # Never let the panel run off the left edge on small screens.
+        x = max(avail.left() + margin, x)
+        self.panel.move(int(x), int(y))
+
     def _set_overlay_to_primary_monitor(self):
 
         ps = QtGui.QGuiApplication.primaryScreen()

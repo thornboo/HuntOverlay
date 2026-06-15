@@ -51,6 +51,8 @@ https://github.com/uzpj/HuntOverlay-by-sKhaled
 - 快捷键驱动交互
 - 用户配置本地保存
 - 可按分类软隐藏指定点位
+- 一键全选 / 全不选所有点位分类
+- 控制面板默认置于屏幕右侧垂直居中，不遮挡地图叠加层
 - 可打包为便携式单文件 exe
 - 中文界面本地化
 
@@ -101,6 +103,7 @@ https://github.com/uzpj/HuntOverlay-by-sKhaled
 控制面板支持：
 
 - 启用或禁用 POI 分类
+- 一键全选 / 全不选所有分类
 - 修改分类颜色
 - 手动切换地图
 - 启用数字键切图

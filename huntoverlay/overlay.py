@@ -36,9 +36,10 @@ from .config import (
 from . import data_source as _ds
 from .qt_adapters import q2rgb, rgb2q, qcolor_from_any, screenWH
 from .win32 import key, topmost, click_through
-from .runtime import ICON, CONFIG_PATH, META_PATH, data_path, style_path
+from .runtime import ICON, CONFIG_PATH, META_PATH, USER_POIS_PATH, data_path, style_path
 from .widgets.panel import Panel
 from .widgets.dialogs import KeyCaptureDialog
+from . import user_data
 
 # Resolve the user data files once at import (startup), matching the original
 # module-level behavior. ensure_user_file copies bundled defaults if needed.
@@ -98,6 +99,9 @@ class Overlay(QtWidgets.QWidget):
             raise RuntimeError("无法识别 data.json 数据格式")
 
         self.poi_style = load_json(STYLE_PATH)
+
+        # User-authored POIs (separate file, never overwritten by updates).
+        self.user_pois = user_data.load_user_pois(USER_POIS_PATH)
 
         # Order of types controls draw order and GUI ordering.
         self.type_order = [
@@ -641,6 +645,9 @@ class Overlay(QtWidgets.QWidget):
 
         def build_for_category(cat: str):
             items = get_category_list(block, self.fmt, cat)
+            # Append user-authored points for this map+category (drawn on top).
+            user_pts = user_data.get_points(self.user_pois, map_name, cat)
+            items = user_data.merge_into_points(items, user_pts)
             pts = []
             for it in items:
                 if not isinstance(it, dict):

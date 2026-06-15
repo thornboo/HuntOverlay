@@ -16,6 +16,8 @@ ICON = os.path.join(bd(), "myicon.ico") if os.path.isfile(os.path.join(bd(), "my
 # Paths that do not require copying.
 CONFIG_PATH = os.path.join(udir(), "config.json")
 META_PATH = os.path.join(udir(), "update_meta.json")
+# User-authored POIs; never overwritten by remote data refreshes.
+USER_POIS_PATH = os.path.join(udir(), "user_pois.json")
 
 
 def data_path() -> str:

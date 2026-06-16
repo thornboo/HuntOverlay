@@ -12,6 +12,32 @@ logic improvements. The original author's documentation has been folded into thi
 
 ---
 
+## Changes in This Fork
+
+**Localization / multi-language**
+- Fully localized Chinese UI (panel, dialogs, tray menu)
+- A proper multi-language layer (Chinese / English) with a language selector
+  in Settings (applies on restart)
+- Corrected map name translations
+
+**New features**
+- Custom POI editor: a GUI to add/remove your own marker points, stored
+  separately so online data refreshes never overwrite them
+- One-click select-all / deselect-all for POI categories
+- Control panel moved to the right edge, vertically centered, clear of the overlay
+
+**Data & stability**
+- Refreshed bundled POI data and filled in missing category styles
+- Update-check interval shortened from 24h to 6h to reduce stale points
+
+**Engineering (for developers)**
+- Single-file script refactored into a layered Python package (core logic /
+  widgets / platform glue separated)
+- Unit tests added for the core logic
+- One-click Windows build script; fixed encoding issues under Chinese locale
+
+---
+
 ## Safety Notice
 
 The only official repository of the original Hunt Map Overlay by sKhaled is:

@@ -55,11 +55,21 @@ def fetch_remote_file(url: str, dst: str) -> bool:
         return False
 
 
-def format_last_update(ts: str) -> str:
+def last_update_status(ts: str):
+    """Classify a last-check timestamp into a (status, formatted_time) pair.
+
+    Pure logic, no user-facing text — the UI layer composes the message via
+    i18n so this core module stays language-agnostic.
+
+    Returns:
+        ("never", "")                     — never updated
+        ("updated", "YYYY-MM-DD HH:MM")   — updated at that local time
+        ("unknown", "")                   — timestamp present but unparseable
+    """
     if not ts:
-        return "数据：从未更新"
+        return ("never", "")
     try:
         dt = datetime.fromisoformat(ts)
-        return "数据已更新：" + dt.strftime("%Y-%m-%d %H:%M")
+        return ("updated", dt.strftime("%Y-%m-%d %H:%M"))
     except ValueError:
-        return "数据：未知状态"
+        return ("unknown", "")

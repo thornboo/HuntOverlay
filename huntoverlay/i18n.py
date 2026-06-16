@@ -136,6 +136,9 @@ _UI = {
         "Block Shift+Tab": "屏蔽 Shift+Tab",
         "Reset to Default Config": "恢复默认配置",
         "Data: checking...": "数据：检查中...",
+        "Data updated: ": "数据已更新：",
+        "Data: never updated": "数据：从未更新",
+        "Data: unknown": "数据：未知状态",
         "Refresh Data": "刷新数据",
         "Settings": "设置",
         "Language:": "语言：",
@@ -147,6 +150,7 @@ _UI = {
         "Control panel minimized to tray": "控制面板已最小化到托盘",
         "Data: updating...": "数据：正在更新...",
         # Overlay — runtime errors / map title
+        "Error": "错误",
         "Missing data.json": "缺少 data.json",
         "Missing poiData.json": "缺少 poiData.json",
         "Unrecognized data.json format": "无法识别 data.json 数据格式",

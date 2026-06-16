@@ -9,7 +9,7 @@ from huntoverlay.data_source import (
     load_update_meta,
     save_update_meta,
     needs_data_update,
-    format_last_update,
+    last_update_status,
     UPDATE_INTERVAL,
 )
 
@@ -75,8 +75,10 @@ def test_needs_update_on_corrupt_timestamp(tmp_path):
 
 
 @pytest.mark.unit
-def test_format_last_update():
-    assert format_last_update("") == "数据：从未更新"
-    assert format_last_update("garbage") == "数据：未知状态"
-    out = format_last_update("2026-06-15T14:30:00")
-    assert out.startswith("数据已更新：") and "2026-06-15 14:30" in out
+def test_last_update_status():
+    # Pure status code + formatted time; no user-facing text here.
+    assert last_update_status("") == ("never", "")
+    assert last_update_status("garbage") == ("unknown", "")
+    status, when = last_update_status("2026-06-15T14:30:00")
+    assert status == "updated"
+    assert when == "2026-06-15 14:30"

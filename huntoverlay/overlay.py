@@ -71,7 +71,13 @@ def fetch_remote_file(url, dst):
 
 
 def format_last_update(ts):
-    return _ds.format_last_update(ts)
+    """Compose the localized last-update label from the core status code."""
+    status, when = _ds.last_update_status(ts)
+    if status == "updated":
+        return tr("Data updated: ") + when
+    if status == "unknown":
+        return tr("Data: unknown")
+    return tr("Data: never updated")
 
 
 class Overlay(QtWidgets.QWidget):

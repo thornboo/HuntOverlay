@@ -11,6 +11,7 @@ import sys
 from PySide6 import QtGui, QtWidgets
 
 from .constants import APP_TITLE
+from .i18n import tr
 from .runtime import ICON
 from .overlay import Overlay
 
@@ -41,7 +42,7 @@ def main():
     try:
         w = Overlay()
     except Exception as e:
-        QtWidgets.QMessageBox.critical(None, f"{APP_TITLE}：错误", str(e))
+        QtWidgets.QMessageBox.critical(None, f"{APP_TITLE}：{tr('Error')}", str(e))
         sys.exit(1)
 
     # Keep a reference so the overlay is not garbage-collected.

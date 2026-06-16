@@ -175,6 +175,7 @@ _UI = {
         "Category:": "分类：",
         "Description": "描述",
         "Add": "新增",
+        "Pick from Map": "从地图拾取",
         "Delete Selected": "删除选中",
         "Close": "关闭",
         "Custom points only (official points are read-only)":

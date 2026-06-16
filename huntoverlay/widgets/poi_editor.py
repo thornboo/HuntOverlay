@@ -25,8 +25,15 @@ _EDITABLE_CATEGORIES = [
 
 
 class PoiEditorDialog(QtWidgets.QDialog):
-    def __init__(self, user_pois: dict, icon: str = "", p=None):
+    def __init__(self, user_pois: dict, icon: str = "", p=None,
+                 init_map: str = "", init_cat: str = "",
+                 prefill_xy=None):
         super().__init__(p)
+        # Set to True (with pick_map/pick_cat recorded) when the user asks to
+        # pick a coordinate from the map; the overlay reads these after exec().
+        self.pick_requested = False
+        self.pick_map = ""
+        self.pick_cat = ""
         self.setWindowTitle(tr("Edit Custom POIs"))
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
@@ -96,6 +103,9 @@ class PoiEditorDialog(QtWidgets.QDialog):
         btn_add = QtWidgets.QPushButton(tr("Add"))
         btn_add.clicked.connect(self._add_point)
         addr.addWidget(btn_add)
+        btn_pick = QtWidgets.QPushButton(tr("Pick from Map"))
+        btn_pick.clicked.connect(self._request_pick)
+        addr.addWidget(btn_pick)
         root.addLayout(addr)
 
         # Bottom buttons.
@@ -111,7 +121,29 @@ class PoiEditorDialog(QtWidgets.QDialog):
 
         self.cmb_map.currentIndexChanged.connect(self._refresh_table)
         self.cmb_cat.currentIndexChanged.connect(self._refresh_table)
+
+        # Restore context after returning from a map pick.
+        if init_map:
+            i = self.cmb_map.findData(init_map)
+            if i >= 0:
+                self.cmb_map.setCurrentIndex(i)
+        if init_cat:
+            i = self.cmb_cat.findData(init_cat)
+            if i >= 0:
+                self.cmb_cat.setCurrentIndex(i)
+        if prefill_xy:
+            self.sp_x.setValue(int(prefill_xy[0]))
+            self.sp_y.setValue(int(prefill_xy[1]))
+
         self._refresh_table()
+
+    def _request_pick(self):
+        """Record the current map/category and close so the overlay can enter
+        pick mode; the overlay reopens this editor with the picked coords."""
+        self.pick_requested = True
+        self.pick_map = self._cur_map()
+        self.pick_cat = self._cur_cat()
+        self.accept()
 
     def _cur_map(self) -> str:
         return self.cmb_map.currentData()

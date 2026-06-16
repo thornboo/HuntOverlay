@@ -25,7 +25,7 @@ from .i18n import category_label, map_display, action_labels, tr
 from . import i18n as _i18n
 from .geometry import (
     detect_aspect_label, overlay_radius_from_spec, rotate90cw_norm,
-    default_rect_ratio_by_aspect,
+    norm_to_grid, default_rect_ratio_by_aspect,
 )
 from .mapdata import (
     detect_data_format, get_map_block, get_category_list, find_style_by_category,
@@ -37,7 +37,7 @@ from .config import (
 )
 from . import data_source as _ds
 from .qt_adapters import q2rgb, rgb2q, qcolor_from_any, screenWH
-from .win32 import key, topmost, click_through
+from .win32 import key, topmost, click_through, set_mouse_transparent
 from .runtime import ICON, CONFIG_PATH, META_PATH, USER_POIS_PATH, data_path, style_path
 from .widgets.panel import Panel
 from .widgets.dialogs import KeyCaptureDialog
@@ -193,6 +193,14 @@ class Overlay(QtWidgets.QWidget):
         self.hover = None
         self.hover_radius = 10
 
+        # POI pick mode: when active, the overlay captures the mouse (click-
+        # through is temporarily disabled) and the next click yields a grid
+        # coordinate. _pick_pos is the current cursor position for the crosshair.
+        self._pick_mode = False
+        self._pick_pos = None
+        self._pick_map = ""
+        self._pick_cat = ""
+
         # Cache computed point lists per map to avoid rebuilding every frame.
         self.cache = {}
         self._rebuild_all_caches()
@@ -295,18 +303,90 @@ class Overlay(QtWidgets.QWidget):
         except Exception:
             pass
 
-    def _open_poi_editor(self):
+    def _open_poi_editor(self, init_map: str = "", init_cat: str = "", prefill_xy=None):
         """Open the user-POI editor; on close, persist and hot-refresh.
 
         The dialog edits a working copy, so this only commits when it returns.
         User points go to user_pois.json; data.json is never touched.
         """
-        dlg = PoiEditorDialog(self.user_pois, ICON, self.panel)
+        dlg = PoiEditorDialog(self.user_pois, ICON, self.panel,
+                              init_map=init_map, init_cat=init_cat,
+                              prefill_xy=prefill_xy)
         dlg.exec()
         self.user_pois = dlg.result_pois
         user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
         self._rebuild_all_caches()
         self.update()
+
+        # If the user asked to pick a coordinate from the map, enter pick mode;
+        # the picked coordinate reopens the editor with it prefilled.
+        if dlg.pick_requested:
+            self._enter_pick_mode(dlg.pick_map, dlg.pick_cat)
+
+    # ── POI pick mode ─────────────────────────────────────────────────────
+    def _enter_pick_mode(self, pick_map: str, pick_cat: str):
+        """Switch the overlay to the target map and capture the mouse so the
+        next click yields a grid coordinate. Click-through is disabled here
+        and restored in _exit_pick_mode."""
+        self._pick_map = pick_map
+        self._pick_cat = pick_cat
+        # Show the map being edited so its official points serve as reference.
+        if pick_map in MAPS and pick_map != self.prof:
+            self.switch(pick_map)
+        self.master = True
+        self.visible = True
+        self._show_overlay_on_primary()
+        self._pick_mode = True
+        self._pick_pos = None
+        self.setMouseTracking(True)
+        set_mouse_transparent(int(self.winId()), False)  # capture the mouse
+        self.update()
+
+    def _exit_pick_mode(self):
+        self._pick_mode = False
+        self._pick_pos = None
+        self.setMouseTracking(False)
+        set_mouse_transparent(int(self.winId()), True)  # restore pass-through
+        self.update()
+
+    def mouseMoveEvent(self, e):
+        if self._pick_mode:
+            self._pick_pos = e.position()
+            self.update()
+        else:
+            super().mouseMoveEvent(e)
+
+    def mousePressEvent(self, e):
+        if not self._pick_mode:
+            super().mousePressEvent(e)
+            return
+        if e.button() == QtCore.Qt.LeftButton and self.rect:
+            x, y = self._screen_to_grid(e.position())
+            mp, cat = self._pick_map, self._pick_cat
+            self._exit_pick_mode()
+            # Reopen the editor with the picked coordinate prefilled.
+            self._open_poi_editor(init_map=mp, init_cat=cat, prefill_xy=(x, y))
+        else:
+            # Right-click / other: cancel the pick, reopen editor unchanged.
+            mp, cat = self._pick_map, self._pick_cat
+            self._exit_pick_mode()
+            self._open_poi_editor(init_map=mp, init_cat=cat)
+
+    def keyPressEvent(self, e):
+        if self._pick_mode and e.key() == QtCore.Qt.Key_Escape:
+            mp, cat = self._pick_map, self._pick_cat
+            self._exit_pick_mode()
+            self._open_poi_editor(init_map=mp, init_cat=cat)
+        else:
+            super().keyPressEvent(e)
+
+    def _screen_to_grid(self, pos):
+        """Map a cursor position (overlay-local) inside self.rect back to a
+        0-4095 grid coordinate via the inverse of the render transform."""
+        u = (pos.x() - self.rect.left()) / max(1, self.rect.width())
+        v = (pos.y() - self.rect.top()) / max(1, self.rect.height())
+        return norm_to_grid(u, v)
+
 
     def _force_data_refresh(self):
         self.panel.setLastUpdateText(tr("Data: updating..."))
@@ -913,4 +993,33 @@ class Overlay(QtWidgets.QWidget):
         p.drawRoundedRect(r, 8, 8)
         p.setPen(QtGui.QPen(QtGui.QColor(230, 230, 230), 1))
         p.drawText(r.adjusted(8, 7, -8, -4), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, txt)
+
+        # Pick mode overlay: rect outline, crosshair, live coords, preview dot.
+        if self._pick_mode and self._pick_pos is not None:
+            p.setPen(QtGui.QPen(QtGui.QColor(144, 160, 255), 1, QtCore.Qt.DashLine))
+            p.setBrush(QtCore.Qt.NoBrush)
+            p.drawRect(self.rect)
+
+            px, py = self._pick_pos.x(), self._pick_pos.y()
+            p.setPen(QtGui.QPen(QtGui.QColor(144, 160, 255), 1))
+            p.drawLine(int(self.rect.left()), int(py), int(self.rect.right()), int(py))
+            p.drawLine(int(px), int(self.rect.top()), int(px), int(self.rect.bottom()))
+
+            # Preview dot at the cursor.
+            p.setBrush(QtGui.QColor(255, 211, 77))
+            p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 2))
+            p.drawEllipse(self._pick_pos, 5, 5)
+
+            # Live grid coordinate next to the cursor.
+            gx, gy = self._screen_to_grid(self._pick_pos)
+            ctxt = f"X:{gx}  Y:{gy}"
+            cfm = QtGui.QFontMetrics(p.font())
+            ctw = cfm.horizontalAdvance(ctxt)
+            cr = QtCore.QRectF(px + 12, py + 12, ctw + 12, cfm.height() + 6)
+            p.setPen(QtCore.Qt.NoPen)
+            p.setBrush(QtGui.QColor(0, 0, 0, 180))
+            p.drawRoundedRect(cr, 5, 5)
+            p.setPen(QtGui.QPen(QtGui.QColor(255, 211, 77), 1))
+            p.drawText(cr.adjusted(6, 3, -6, -3), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, ctxt)
+
         p.end()

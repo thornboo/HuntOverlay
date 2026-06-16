@@ -39,3 +39,26 @@ def click_through(hwnd: int) -> None:
         _u32().SetWindowLongW(hwnd, -20, style | 0x80000 | 0x80 | 0x8000000 | 0x20)
     except Exception:
         pass
+
+
+# WS_EX_TRANSPARENT — the bit that makes mouse clicks pass through.
+_WS_EX_TRANSPARENT = 0x20
+
+
+def set_mouse_transparent(hwnd: int, transparent: bool) -> None:
+    """Toggle only the click-through bit, leaving the other extended styles
+    (layered / toolwindow / noactivate) intact.
+
+    transparent=True restores normal pass-through; False lets the overlay
+    receive mouse events (used by the POI pick mode), then it is flipped
+    back to True when picking ends.
+    """
+    try:
+        style = _u32().GetWindowLongW(hwnd, -20)
+        if transparent:
+            style |= _WS_EX_TRANSPARENT
+        else:
+            style &= ~_WS_EX_TRANSPARENT
+        _u32().SetWindowLongW(hwnd, -20, style)
+    except Exception:
+        pass

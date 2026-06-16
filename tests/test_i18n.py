@@ -102,3 +102,32 @@ def test_every_map_has_both_languages():
 def test_english_fallback_when_current_lang_used():
     i18n.set_language("en")
     assert i18n.category_label("brutes", "x") == "Brutes"
+
+
+@pytest.mark.unit
+def test_tr_zh_translates():
+    assert i18n.tr("Select All") == "全选"
+    assert i18n.tr("Reset Colors") == "重置颜色"
+    assert i18n.tr("Settings") == "设置"
+
+
+@pytest.mark.unit
+def test_tr_en_returns_source_text():
+    i18n.set_language("en")
+    assert i18n.tr("Select All") == "Select All"
+    assert i18n.tr("Settings") == "Settings"
+
+
+@pytest.mark.unit
+def test_tr_unknown_key_returns_itself():
+    assert i18n.tr("Some Untranslated String") == "Some Untranslated String"
+    i18n.set_language("en")
+    assert i18n.tr("Some Untranslated String") == "Some Untranslated String"
+
+
+@pytest.mark.unit
+def test_tr_multiline_string():
+    src = "Press a key\nHold Ctrl / Alt / Shift if needed\nEsc to cancel"
+    assert "Esc" in i18n.tr(src)  # zh translation exists
+    i18n.set_language("en")
+    assert i18n.tr(src) == src

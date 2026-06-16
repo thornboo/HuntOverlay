@@ -8,7 +8,7 @@ huntoverlay.win32, DotChip from the sibling dialogs module.
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..constants import APP_TITLE, MAPS
-from ..i18n import map_display
+from ..i18n import map_display, tr, available_languages, get_language
 from ..win32 import key
 from .dialogs import DotChip
 
@@ -27,6 +27,7 @@ class Panel(QtWidgets.QWidget):
     holdTabModeChanged = QtCore.Signal(bool)
     blockShiftTabChanged = QtCore.Signal(bool)
     forceRefresh = QtCore.Signal()
+    languageChanged = QtCore.Signal(str)  # emits language code; applies on restart
 
 
     def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, p=None):
@@ -86,8 +87,8 @@ class Panel(QtWidgets.QWidget):
         # Bulk enable/disable all POI categories at once.
         sel_row = QtWidgets.QHBoxLayout()
         sel_row.setSpacing(6)
-        btn_all = QtWidgets.QPushButton("全选")
-        btn_none = QtWidgets.QPushButton("全不选")
+        btn_all = QtWidgets.QPushButton(tr("Select All"))
+        btn_none = QtWidgets.QPushButton(tr("Deselect All"))
         btn_all.clicked.connect(lambda: self._set_all_types(True))
         btn_none.clicked.connect(lambda: self._set_all_types(False))
         sel_row.addWidget(btn_all)
@@ -95,7 +96,7 @@ class Panel(QtWidgets.QWidget):
         tv.addLayout(sel_row)
 
         map_row = QtWidgets.QHBoxLayout()
-        map_row.addWidget(QtWidgets.QLabel("地图："))
+        map_row.addWidget(QtWidgets.QLabel(tr("Map:")))
         self.cmb = QtWidgets.QComboBox()
         # Show Chinese labels but keep the English canonical name as item data,
         # so the rest of the app keeps receiving English map keys.
@@ -107,14 +108,14 @@ class Panel(QtWidgets.QWidget):
             lambda _i: self.mapSel.emit(self.cmb.currentData())
         )
 
-        self.chk_nums = QtWidgets.QCheckBox("1-4 数字键切图")
+        self.chk_nums = QtWidgets.QCheckBox(tr("1-4 map switch keys"))
         tv.addWidget(self.chk_nums)
         self.chk_nums.toggled.connect(self.tnums)
 
         tv.addSpacing(6)
 
         scale_row = QtWidgets.QHBoxLayout()
-        scale_row.addWidget(QtWidgets.QLabel("缩放："))
+        scale_row.addWidget(QtWidgets.QLabel(tr("Scale:")))
         self.btn_dec = QtWidgets.QPushButton("−")
         self.btn_dec.setFixedWidth(26)
         self.btn_inc = QtWidgets.QPushButton("+")
@@ -135,12 +136,12 @@ class Panel(QtWidgets.QWidget):
         self.scale_box.valueChanged.connect(lambda x: self.scaleChanged.emit(float(x)))
 
         tv.addSpacing(6)
-        self.btn_def_colors = QtWidgets.QPushButton("重置颜色")
+        self.btn_def_colors = QtWidgets.QPushButton(tr("Reset Colors"))
         tv.addWidget(self.btn_def_colors)
         self.btn_def_colors.clicked.connect(self.resetColors)
 
         tv.addStretch(1)
-        tabs.addTab(types_page, "点位")
+        tabs.addTab(types_page, tr("POIs"))
 
         # ── Tab 2: Keybinds ───────────────────────────────────────────
         kb_page = QtWidgets.QWidget()
@@ -157,7 +158,7 @@ class Panel(QtWidgets.QWidget):
             cur_lbl.setStyleSheet("color:#90a0ff;")
             cur_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
             row.addWidget(cur_lbl)
-            btn = QtWidgets.QPushButton("设置")
+            btn = QtWidgets.QPushButton(tr("Set"))
             btn.setFixedWidth(48)
             row.addWidget(btn)
             kv.addLayout(row)
@@ -165,7 +166,7 @@ class Panel(QtWidgets.QWidget):
             btn.clicked.connect(lambda _, a=action: self.requestBindEdit.emit(a))
 
         kv.addStretch(1)
-        tabs.addTab(kb_page, "快捷键")
+        tabs.addTab(kb_page, tr("Keybinds"))
 
         # ── Tab 3: Settings ───────────────────────────────────────────
         cfg_page = QtWidgets.QWidget()
@@ -173,34 +174,53 @@ class Panel(QtWidgets.QWidget):
         cv.setContentsMargins(8, 8, 8, 8)
         cv.setSpacing(6)
 
-        self.chk_tray = QtWidgets.QCheckBox("最小化到系统托盘")
+        # Language selector (change applies on restart).
+        lang_row = QtWidgets.QHBoxLayout()
+        lang_row.addWidget(QtWidgets.QLabel(tr("Language:")))
+        self.cmb_lang = QtWidgets.QComboBox()
+        for code, display in available_languages():
+            self.cmb_lang.addItem(display, code)
+        cur = self.cmb_lang.findData(get_language())
+        if cur >= 0:
+            self.cmb_lang.setCurrentIndex(cur)
+        lang_row.addWidget(self.cmb_lang, 1)
+        cv.addLayout(lang_row)
+        self.cmb_lang.currentIndexChanged.connect(
+            lambda _i: self.languageChanged.emit(self.cmb_lang.currentData())
+        )
+        self.lbl_lang_hint = QtWidgets.QLabel(tr("Restart to apply the language change."))
+        self.lbl_lang_hint.setStyleSheet("color:#90a0ff;")
+        self.lbl_lang_hint.setVisible(False)
+        cv.addWidget(self.lbl_lang_hint)
+
+        self.chk_tray = QtWidgets.QCheckBox(tr("Minimize to system tray"))
         self.chk_tray.setChecked(bool(start_min_to_tray))
         cv.addWidget(self.chk_tray)
         self.chk_tray.toggled.connect(lambda b: self.minimizeToTrayChanged.emit(bool(b)))
 
-        self.chk_hold_tab = QtWidgets.QCheckBox("按住 Tab 显示覆盖层")
+        self.chk_hold_tab = QtWidgets.QCheckBox(tr("Hold Tab to show overlay"))
         self.chk_hold_tab.setChecked(bool(start_hold_tab_mode))
         cv.addWidget(self.chk_hold_tab)
         self.chk_hold_tab.toggled.connect(lambda b: self.holdTabModeChanged.emit(bool(b)))
 
-        self.chk_block_shift_tab = QtWidgets.QCheckBox("屏蔽 Shift+Tab")
+        self.chk_block_shift_tab = QtWidgets.QCheckBox(tr("Block Shift+Tab"))
         self.chk_block_shift_tab.setChecked(bool(start_block_shift_tab))
         cv.addWidget(self.chk_block_shift_tab)
         self.chk_block_shift_tab.toggled.connect(lambda b: self.blockShiftTabChanged.emit(bool(b)))
 
         cv.addSpacing(4)
-        self.btn_reset_cfg = QtWidgets.QPushButton("恢复默认配置")
+        self.btn_reset_cfg = QtWidgets.QPushButton(tr("Reset to Default Config"))
         cv.addWidget(self.btn_reset_cfg)
         self.btn_reset_cfg.clicked.connect(self.resetConfig)
 
         cv.addSpacing(8)
 
         update_row = QtWidgets.QHBoxLayout()
-        self.update_label = QtWidgets.QLabel("数据：检查中...")
+        self.update_label = QtWidgets.QLabel(tr("Data: checking..."))
         self.update_label.setStyleSheet("color:#666666;font-size:11px;")
         update_row.addWidget(self.update_label)
         update_row.addStretch(1)
-        self.btn_force_refresh = QtWidgets.QPushButton("刷新数据")
+        self.btn_force_refresh = QtWidgets.QPushButton(tr("Refresh Data"))
         self.btn_force_refresh.setFixedWidth(92)
         update_row.addWidget(self.btn_force_refresh)
         cv.addLayout(update_row)
@@ -208,7 +228,7 @@ class Panel(QtWidgets.QWidget):
 
         cv.addSpacing(2)
         info_style = "color:#555555;font-size:11px;"
-        lbl_info = QtWidgets.QLabel(f"屏幕比例：{aspect}  |  v{config_version}")
+        lbl_info = QtWidgets.QLabel(f"{tr('Aspect:')}{aspect}  |  v{config_version}")
         lbl_info.setStyleSheet(info_style)
         cv.addWidget(lbl_info)
         lbl_path = QtWidgets.QLabel("%LOCALAPPDATA%\\HuntOverlay")
@@ -216,7 +236,7 @@ class Panel(QtWidgets.QWidget):
         cv.addWidget(lbl_path)
 
         cv.addStretch(1)
-        tabs.addTab(cfg_page, "设置")
+        tabs.addTab(cfg_page, tr("Settings"))
 
     def _dec_scale(self):
         self.scale_box.setValue(max(self.scale_box.minimum(), self.scale_box.value() - 0.05))

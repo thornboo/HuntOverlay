@@ -21,7 +21,8 @@ from .constants import (
     DEFAULT_HIDDEN_POSSIBLE_XP,
     VK_TAB, VK_CONTROL, VK_MENU, VK_SHIFT,
 )
-from .i18n import category_label, map_display, action_labels
+from .i18n import category_label, map_display, action_labels, tr
+from . import i18n as _i18n
 from .geometry import (
     detect_aspect_label, overlay_radius_from_spec, rotate90cw_norm,
     default_rect_ratio_by_aspect,
@@ -90,14 +91,14 @@ class Overlay(QtWidgets.QWidget):
             self.setWindowIcon(QtGui.QIcon(ICON))
 
         if not os.path.isfile(DATA_PATH):
-            raise RuntimeError(f"缺少 data.json：{udir()}")
+            raise RuntimeError(f"{tr('Missing data.json')}：{udir()}")
         if not os.path.isfile(STYLE_PATH):
-            raise RuntimeError(f"缺少 poiData.json：{udir()}")
+            raise RuntimeError(f"{tr('Missing poiData.json')}：{udir()}")
 
         self.game_data = load_json(DATA_PATH)
         self.fmt = detect_data_format(self.game_data)
         if self.fmt == "unknown":
-            raise RuntimeError("无法识别 data.json 数据格式")
+            raise RuntimeError(tr("Unrecognized data.json format"))
 
         self.poi_style = load_json(STYLE_PATH)
 
@@ -148,6 +149,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.holdTabModeChanged.connect(self._set_hold_tab_mode)
         self.panel.blockShiftTabChanged.connect(self._set_block_shift_tab)
         self.panel.forceRefresh.connect(self._force_data_refresh)
+        self.panel.languageChanged.connect(self._set_language)
 
         # Seed GUI with current state.
         self.panel.chk_nums.setChecked(self.num_sw)
@@ -232,8 +234,8 @@ class Overlay(QtWidgets.QWidget):
             self.tray.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
 
         menu = QtWidgets.QMenu()
-        act_restore = QtGui.QAction("恢复控制面板", menu)
-        act_quit = QtGui.QAction("退出", menu)
+        act_restore = QtGui.QAction(tr("Restore control panel"), menu)
+        act_quit = QtGui.QAction(tr("Quit"), menu)
         menu.addAction(act_restore)
         menu.addSeparator()
         menu.addAction(act_quit)
@@ -254,7 +256,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.hide()
         self.panel.setWindowState(QtCore.Qt.WindowNoState)
         try:
-            self.tray.showMessage(APP_TITLE, "控制面板已最小化到托盘", QtWidgets.QSystemTrayIcon.Information, 1500)
+            self.tray.showMessage(APP_TITLE, tr("Control panel minimized to tray"), QtWidgets.QSystemTrayIcon.Information, 1500)
         except:
             pass
 
@@ -275,15 +277,25 @@ class Overlay(QtWidgets.QWidget):
         self.block_shift_tab = bool(v)
         self._save()
 
+    def _set_language(self, code: str):
+        """Persist the chosen language. Takes effect on next launch (the UI is
+        built once at startup); show a restart hint in the panel."""
+        self.language = str(code)
+        self._save()
+        try:
+            self.panel.lbl_lang_hint.setVisible(True)
+        except Exception:
+            pass
+
     def _force_data_refresh(self):
-        self.panel.setLastUpdateText("数据：正在更新...")
+        self.panel.setLastUpdateText(tr("Data: updating..."))
         self.panel.btn_force_refresh.setEnabled(False)
         t = threading.Thread(target=self._run_data_update, daemon=True)
         t.start()
 
     def _start_update_check(self):
         if needs_data_update():
-            self.panel.setLastUpdateText("数据：正在更新...")
+            self.panel.setLastUpdateText(tr("Data: updating..."))
             t = threading.Thread(target=self._run_data_update, daemon=True)
             t.start()
 
@@ -388,6 +400,10 @@ class Overlay(QtWidgets.QWidget):
         self.num_sw = bool(st.get("enable_num_switch", True))
         sel = st.get("selected_map", MAPS[0])
         self.prof = sel if sel in MAPS else MAPS[0]
+
+        # Apply saved language before any UI is built so tr() uses it.
+        self.language = st.get("language", _i18n.DEFAULT_LANG)
+        _i18n.set_language(self.language)
         self.visible = bool(st.get("visible_overlay", False))
         self.master = bool(st.get("master_on", True))
 
@@ -490,6 +506,7 @@ class Overlay(QtWidgets.QWidget):
         st["minimize_to_tray"] = bool(self.minimize_to_tray)
         st["hold_tab_to_show"] = bool(self.hold_tab_mode)
         st["block_shift_tab"] = bool(self.block_shift_tab)
+        st["language"] = getattr(self, "language", _i18n.DEFAULT_LANG)
 
         st["types"] = self.types
         st["keybinds"] = self.binds
@@ -863,7 +880,7 @@ class Overlay(QtWidgets.QWidget):
 
         # Map label at top right.
         m = 20
-        txt = f"地图：{map_display(self.prof)}  ({self.aspect})"
+        txt = f"{tr('Map')}：{map_display(self.prof)}  ({self.aspect})"
         f = p.font()
         f.setBold(True)
         p.setFont(f)

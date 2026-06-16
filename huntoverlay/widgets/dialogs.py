@@ -10,6 +10,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ..constants import VK_ESC, VK_CONTROL, VK_MENU, VK_SHIFT
 from ..win32 import key
 from ..runtime import ICON
+from ..i18n import tr
 
 
 class KeyCaptureDialog(QtWidgets.QDialog):
@@ -20,14 +21,14 @@ class KeyCaptureDialog(QtWidgets.QDialog):
     """
     def __init__(self, action_name: str, p=None):
         super().__init__(p)
-        self.setWindowTitle(f"设置快捷键：{action_name}")
+        self.setWindowTitle(f"{tr('Set keybind: ')}{action_name}")
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
 
         self.result_bind = None
 
         v = QtWidgets.QVBoxLayout(self)
-        lbl = QtWidgets.QLabel("请按下一个按键\n可同时按住 Ctrl / Alt / Shift\nEsc 取消")
+        lbl = QtWidgets.QLabel(tr("Press a key\nHold Ctrl / Alt / Shift if needed\nEsc to cancel"))
         lbl.setAlignment(QtCore.Qt.AlignCenter)
         v.addWidget(lbl)
 
@@ -115,7 +116,7 @@ class SVPad(QtWidgets.QWidget):
 class AdvColorDlg(QtWidgets.QDialog):
     def __init__(self, start: QtGui.QColor, p=None):
         super().__init__(p)
-        self.setWindowTitle("选择颜色")
+        self.setWindowTitle(tr("Pick a Color"))
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
         self.setStyleSheet(
@@ -162,24 +163,24 @@ class AdvColorDlg(QtWidgets.QDialog):
 
         v = QtWidgets.QVBoxLayout(self)
         v.addWidget(self.pad)
-        v.addWidget(QtWidgets.QLabel("色相"))
+        v.addWidget(QtWidgets.QLabel(tr("Hue")))
         v.addWidget(self.h)
         rgb = QtWidgets.QHBoxLayout()
-        rgb.addLayout(row("红", self.r))
-        rgb.addLayout(row("绿", self.g))
-        rgb.addLayout(row("蓝", self.b))
+        rgb.addLayout(row(tr("Red"), self.r))
+        rgb.addLayout(row(tr("Green"), self.g))
+        rgb.addLayout(row(tr("Blue"), self.b))
         v.addLayout(rgb)
         hh = QtWidgets.QHBoxLayout()
-        hh.addWidget(QtWidgets.QLabel("十六进制"))
+        hh.addWidget(QtWidgets.QLabel(tr("Hex")))
         hh.addWidget(self.hex)
         hh.addStretch(1)
         hh.addWidget(self.prev)
         v.addLayout(hh)
-        v.addWidget(QtWidgets.QLabel("预设颜色"))
+        v.addWidget(QtWidgets.QLabel(tr("Presets")))
         v.addLayout(grid)
         bt = QtWidgets.QHBoxLayout()
-        ok = QtWidgets.QPushButton("确定")
-        ca = QtWidgets.QPushButton("取消")
+        ok = QtWidgets.QPushButton(tr("OK"))
+        ca = QtWidgets.QPushButton(tr("Cancel"))
         bt.addStretch(1)
         bt.addWidget(ok)
         bt.addWidget(ca)

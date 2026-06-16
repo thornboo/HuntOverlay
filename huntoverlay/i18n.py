@@ -111,3 +111,71 @@ def action_label(action: str, fallback: str = "") -> str:
 def action_labels() -> dict:
     """Mapping of action key -> current-language label (replaces ACTION_LABELS_ZH)."""
     return {k: _lookup(_ACTION_LABELS, k, k) for k in _ACTION_LABELS}
+
+
+# ── General UI strings ────────────────────────────────────────────────────
+# Keyed by the English source text (gettext-style). English is "under the
+# hood": tr() returns the key itself for language "en" or any missing key, so
+# the UI never blanks. Only non-English translations need entries here.
+_UI = {
+    "zh": {
+        # Panel — Types tab
+        "Select All": "全选",
+        "Deselect All": "全不选",
+        "Map:": "地图：",
+        "1-4 map switch keys": "1-4 数字键切图",
+        "Scale:": "缩放：",
+        "Reset Colors": "重置颜色",
+        "POIs": "点位",
+        # Panel — Keybinds tab
+        "Set": "设置",
+        "Keybinds": "快捷键",
+        # Panel — Settings tab
+        "Minimize to system tray": "最小化到系统托盘",
+        "Hold Tab to show overlay": "按住 Tab 显示覆盖层",
+        "Block Shift+Tab": "屏蔽 Shift+Tab",
+        "Reset to Default Config": "恢复默认配置",
+        "Data: checking...": "数据：检查中...",
+        "Refresh Data": "刷新数据",
+        "Settings": "设置",
+        "Language:": "语言：",
+        "Aspect:": "屏幕比例：",
+        "Restart to apply the language change.": "重启后语言更改生效。",
+        # Overlay — tray / status / errors
+        "Restore control panel": "恢复控制面板",
+        "Quit": "退出",
+        "Control panel minimized to tray": "控制面板已最小化到托盘",
+        "Data: updating...": "数据：正在更新...",
+        # Overlay — runtime errors / map title
+        "Missing data.json": "缺少 data.json",
+        "Missing poiData.json": "缺少 poiData.json",
+        "Unrecognized data.json format": "无法识别 data.json 数据格式",
+        "Map": "地图",
+        # Dialogs — keybind capture
+        "Set keybind: ": "设置快捷键：",
+        "Press a key\nHold Ctrl / Alt / Shift if needed\nEsc to cancel":
+            "请按下一个按键\n可同时按住 Ctrl / Alt / Shift\nEsc 取消",
+        # Dialogs — color picker
+        "Pick a Color": "选择颜色",
+        "Hue": "色相",
+        "Red": "红",
+        "Green": "绿",
+        "Blue": "蓝",
+        "Hex": "十六进制",
+        "Presets": "预设颜色",
+        "OK": "确定",
+        "Cancel": "取消",
+    },
+}
+
+
+def tr(text: str) -> str:
+    """Translate a UI string by its English source text.
+
+    Returns the current language's translation, or the English text itself
+    for 'en' / unknown keys (so the UI never shows a blank).
+    """
+    lang_table = _UI.get(_current)
+    if lang_table and text in lang_table:
+        return lang_table[text]
+    return text

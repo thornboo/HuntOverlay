@@ -7,7 +7,8 @@ huntoverlay.win32, DotChip from the sibling dialogs module.
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..constants import APP_TITLE, MAPS, map_display
+from ..constants import APP_TITLE, MAPS
+from ..i18n import map_display
 from ..win32 import key
 from .dialogs import DotChip
 

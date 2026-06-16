@@ -16,11 +16,12 @@ from datetime import datetime
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .constants import (
-    APP_TITLE, CONFIG_VERSION, MAPS, ACTION_LABELS_ZH,
-    DATA_URL, STYLE_URL, category_label, map_display,
+    APP_TITLE, CONFIG_VERSION, MAPS,
+    DATA_URL, STYLE_URL,
     DEFAULT_HIDDEN_POSSIBLE_XP,
     VK_TAB, VK_CONTROL, VK_MENU, VK_SHIFT,
 )
+from .i18n import category_label, map_display, action_labels
 from .geometry import (
     detect_aspect_label, overlay_radius_from_spec, rotate90cw_norm,
     default_rect_ratio_by_aspect,
@@ -128,7 +129,7 @@ class Overlay(QtWidgets.QWidget):
         self._load_state_from_config(self.data)
 
         # Build the panel window.
-        binds_label_map = ACTION_LABELS_ZH
+        binds_label_map = action_labels()
         binds_current = {a: self._bind_label(a) for a in binds_label_map}
         self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab)
         if ICON:
@@ -804,7 +805,7 @@ class Overlay(QtWidgets.QWidget):
         Captures next key press plus modifiers.
         Modifiers are only applied to hide_hovered by design.
         """
-        d = KeyCaptureDialog(ACTION_LABELS_ZH.get(action, action), self.panel)
+        d = KeyCaptureDialog(action_labels().get(action, action), self.panel)
         if ICON:
             d.setWindowIcon(QtGui.QIcon(ICON))
 

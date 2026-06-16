@@ -169,6 +169,17 @@ _UI = {
         "Presets": "预设颜色",
         "OK": "确定",
         "Cancel": "取消",
+        # POI editor
+        "Edit POIs": "编辑点位",
+        "Edit Custom POIs": "编辑自定义点位",
+        "Category:": "分类：",
+        "Description": "描述",
+        "Add": "新增",
+        "Delete Selected": "删除选中",
+        "Close": "关闭",
+        "Custom points only (official points are read-only)":
+            "仅显示自定义点位（官方点位只读）",
+        "Invalid coordinates (need 0-4095).": "坐标无效（需 0–4095）。",
     },
 }
 

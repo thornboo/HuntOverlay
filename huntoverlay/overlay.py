@@ -41,6 +41,7 @@ from .win32 import key, topmost, click_through
 from .runtime import ICON, CONFIG_PATH, META_PATH, USER_POIS_PATH, data_path, style_path
 from .widgets.panel import Panel
 from .widgets.dialogs import KeyCaptureDialog
+from .widgets.poi_editor import PoiEditorDialog
 from . import user_data
 
 # Resolve the user data files once at import (startup), matching the original
@@ -156,6 +157,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.blockShiftTabChanged.connect(self._set_block_shift_tab)
         self.panel.forceRefresh.connect(self._force_data_refresh)
         self.panel.languageChanged.connect(self._set_language)
+        self.panel.requestPoiEditor.connect(self._open_poi_editor)
 
         # Seed GUI with current state.
         self.panel.chk_nums.setChecked(self.num_sw)
@@ -292,6 +294,19 @@ class Overlay(QtWidgets.QWidget):
             self.panel.lbl_lang_hint.setVisible(True)
         except Exception:
             pass
+
+    def _open_poi_editor(self):
+        """Open the user-POI editor; on close, persist and hot-refresh.
+
+        The dialog edits a working copy, so this only commits when it returns.
+        User points go to user_pois.json; data.json is never touched.
+        """
+        dlg = PoiEditorDialog(self.user_pois, ICON, self.panel)
+        dlg.exec()
+        self.user_pois = dlg.result_pois
+        user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
+        self._rebuild_all_caches()
+        self.update()
 
     def _force_data_refresh(self):
         self.panel.setLastUpdateText(tr("Data: updating..."))

@@ -70,7 +70,28 @@ build_windows.bat onedir clean
 3. - [ ] 地图中心附近多出一个军械库点位 → 渲染合并正常
 4. - [ ] 没有 user_pois.json 时程序照常运行（向后兼容）
 
-## 6. 安全/铁律确认（可选）
+## 6. 多语言切换（i18n 第二步，重点验证）
+
+i18n 大量改了 Qt 界面代码，效果只能真机确认。语言切换设计为**重启生效**。
+
+- [ ] 设置页有「语言：」下拉框，含「中文 / English」
+- [ ] 默认是中文，整个界面（标签页、按钮、复选框、对话框）都是中文
+- [ ] 切换到 English 后，下方出现蓝色提示「重启后语言更改生效。」
+- [ ] **重启程序**后，界面变成英文：
+  - [ ] 三个标签页：POIs / Keybinds / Settings
+  - [ ] 按钮：Select All / Deselect All / Reset Colors / Refresh Data 等
+  - [ ] Keybinds 页每行的按钮是「Set」（不是「Settings」）← 重点核对这个歧义点
+  - [ ] 设置页：Minimize to system tray / Hold Tab to show overlay 等
+  - [ ] 颜色对话框：Pick a Color / Hue / Red/Green/Blue / Hex / OK / Cancel
+  - [ ] 托盘菜单：Restore control panel / Quit
+  - [ ] 叠加层左上角地图标题：`Map：<名字>`
+  - [ ] 数据状态：Data updated / Data: never updated 等
+- [ ] 切回中文并重启，界面恢复中文
+- [ ] 应用窗口标题仍是中文品牌名「猎杀对决地图覆盖工具」（设计如此，不随语言变）
+
+> 若发现某处切到英文后仍是中文 → 说明该字符串漏接 i18n，把具体位置告诉我。
+
+## 7. 安全/铁律确认（可选）
 
 - [ ] 程序运行时不读写游戏进程（任务管理器看不到对 Hunt 进程的操作）
 - [ ] 网络请求只发往 `hunt.kamille.ovh`（可用抓包工具确认，或看防火墙提示）
@@ -83,3 +104,4 @@ build_windows.bat onedir clean
 1. 第 4 项点位**对上了没**（最关键）
 2. 任何报错、异常、行为和拆分前不一致的地方
 3. 第 5 项用户点位有没有渲染出来
+4. 第 6 项语言切换是否完整（哪处切到英文后仍是中文）

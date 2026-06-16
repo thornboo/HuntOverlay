@@ -7,6 +7,7 @@ from huntoverlay.geometry import (
     default_rect_ratio_16_9,
     default_rect_ratio_by_aspect,
     rotate90cw_norm,
+    norm_to_grid,
     overlay_radius_from_spec,
 )
 
@@ -94,3 +95,37 @@ def test_rotate90cw_norm_clamps_out_of_range():
 )
 def test_overlay_radius_from_spec(spec, expected):
     assert overlay_radius_from_spec(spec) == expected
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "u,v,expected",
+    [
+        (0.0, 1.0, (0, 0)),
+        (1.0, 0.0, (4095, 4095)),
+        (0.0, 0.0, (4095, 0)),
+        (1.0, 1.0, (0, 4095)),
+    ],
+)
+def test_norm_to_grid_corners(u, v, expected):
+    assert norm_to_grid(u, v) == expected
+
+
+@pytest.mark.unit
+def test_norm_to_grid_clamps():
+    assert norm_to_grid(-1, -1) == norm_to_grid(0, 0)
+    assert norm_to_grid(2, 2) == norm_to_grid(1, 1)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "x,y",
+    [
+        (0, 0), (4095, 4095), (2048, 1536), (100, 4000), (3877, 766), (1, 4094),
+    ],
+)
+def test_grid_norm_grid_round_trip(x, y):
+    # The whole point of the inverse: picking a point and mapping back must
+    # return the original grid coordinate.
+    u, v = rotate90cw_norm(x, y)
+    assert norm_to_grid(u, v) == (x, y)

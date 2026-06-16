@@ -67,6 +67,22 @@ def rotate90cw_norm(x, y):
     return u, v
 
 
+def norm_to_grid(u, v):
+    """Inverse of rotate90cw_norm: normalized (u, v) back to 4096-grid (x, y).
+
+    From the forward map  u = y/4095,  v = (4095 - x)/4095  we get
+        y = u * 4095
+        x = (1 - v) * 4095
+    Inputs are clamped to [0, 1]; outputs are ints in [0, 4095], so a
+    grid -> norm -> grid round trip returns the original coordinates.
+    """
+    uu = 0.0 if u < 0 else (1.0 if u > 1 else float(u))
+    vv = 0.0 if v < 0 else (1.0 if v > 1 else float(v))
+    x = int(round((1.0 - vv) * 4095.0))
+    y = int(round(uu * 4095.0))
+    return x, y
+
+
 def overlay_radius_from_spec(spec_radius) -> int:
     """
     Converts poiData.json radius into a stable on screen radius baseline.

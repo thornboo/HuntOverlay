@@ -139,7 +139,7 @@ class Overlay(QtWidgets.QWidget):
         # Build the panel window.
         binds_label_map = action_labels()
         binds_current = {a: self._bind_label(a) for a in binds_label_map}
-        self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab)
+        self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab, self.panel_follow_tab)
         if ICON:
             self.panel.setWindowIcon(QtGui.QIcon(ICON))
 
@@ -155,6 +155,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.minimizeToTrayChanged.connect(self._set_minimize_to_tray)
         self.panel.holdTabModeChanged.connect(self._set_hold_tab_mode)
         self.panel.blockShiftTabChanged.connect(self._set_block_shift_tab)
+        self.panel.panelFollowTabChanged.connect(self._set_panel_follow_tab)
         self.panel.forceRefresh.connect(self._force_data_refresh)
         self.panel.languageChanged.connect(self._set_language)
         self.panel.requestPoiEditor.connect(self._open_poi_editor)
@@ -211,6 +212,10 @@ class Overlay(QtWidgets.QWidget):
         # Start with the control panel minimized to tray.
         if self.minimize_to_tray:
             self._hide_panel_to_tray()
+        elif self.panel_follow_tab and not self.visible:
+            # Follow-Tab on and overlay starts hidden: keep the panel hidden
+            # too; it appears when the overlay is shown via Tab.
+            self.panel.hide()
         else:
             self.panel.show()
             self._position_panel_right_center()
@@ -288,6 +293,30 @@ class Overlay(QtWidgets.QWidget):
     def _set_hold_tab_mode(self, v: bool):
         self.hold_tab_mode = bool(v)
         self._save()
+
+    def _set_panel_follow_tab(self, v: bool):
+        self.panel_follow_tab = bool(v)
+        # Apply immediately: if turning follow off, make sure the panel is
+        # reachable again; if on, sync it to the current overlay visibility.
+        if self.panel_follow_tab:
+            self._sync_panel_visibility()
+        elif not self.minimize_to_tray:
+            self.panel.show()
+            self._position_panel_right_center()
+        self._save()
+
+    def _sync_panel_visibility(self):
+        """When follow-Tab is on, the panel shows/hides with the overlay.
+
+        Skipped while minimized to tray (the tray owns panel visibility) and
+        when follow-Tab is off (panel stays put)."""
+        if not self.panel_follow_tab or self.minimize_to_tray:
+            return
+        if self.visible:
+            self.panel.show()
+            self._position_panel_right_center()
+        else:
+            self.panel.hide()
 
     def _set_block_shift_tab(self, v: bool):
         self.block_shift_tab = bool(v)
@@ -515,6 +544,10 @@ class Overlay(QtWidgets.QWidget):
         self.minimize_to_tray = bool(st.get("minimize_to_tray", False))
         self.hold_tab_mode = bool(st.get("hold_tab_to_show", False))
         self.block_shift_tab = bool(st.get("block_shift_tab", True))
+        # When True, the control panel shows/hides together with the overlay
+        # (Tab). Default False = panel stays put so users can always reach it
+        # without holding Tab.
+        self.panel_follow_tab = bool(st.get("panel_follow_tab", False))
 
 
         self.binds = self._normalize_keybinds(st.get("keybinds", {}))
@@ -607,6 +640,7 @@ class Overlay(QtWidgets.QWidget):
         st["minimize_to_tray"] = bool(self.minimize_to_tray)
         st["hold_tab_to_show"] = bool(self.hold_tab_mode)
         st["block_shift_tab"] = bool(self.block_shift_tab)
+        st["panel_follow_tab"] = bool(self.panel_follow_tab)
         st["language"] = getattr(self, "language", _i18n.DEFAULT_LANG)
 
         st["types"] = self.types
@@ -636,11 +670,11 @@ class Overlay(QtWidgets.QWidget):
         )
     
     def _position_panel_right_center(self):
-        """Place the control panel against the right edge, vertically centered.
+        """Place the control panel against the top-right corner.
 
-        The overlay marker rect lives in the central band of the screen
-        (roughly 31%-69% wide in 16:9), so the right edge stays clear of it.
-        Uses availableGeometry so the Windows taskbar is respected.
+        Top-right keeps it clear of the central overlay marker band and of
+        the game's trait/skill info (shown lower-right). Uses availableGeometry
+        so the Windows taskbar is respected.
         """
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen is None:
@@ -652,10 +686,9 @@ class Overlay(QtWidgets.QWidget):
         avail = screen.availableGeometry()
         margin = 24
         pw = self.panel.frameGeometry().width()
-        ph = self.panel.frameGeometry().height()
 
         x = avail.right() - pw - margin
-        y = avail.top() + max(0, (avail.height() - ph) // 2)
+        y = avail.top() + margin
         # Never let the panel run off the left edge on small screens.
         x = max(avail.left() + margin, x)
         self.panel.move(int(x), int(y))
@@ -887,6 +920,7 @@ class Overlay(QtWidgets.QWidget):
                     self._show_overlay_on_primary()
                 else:
                     self.hide()
+                self._sync_panel_visibility()
                 self._save()
             self.p_toggle_overlay = nt
         else:
@@ -896,6 +930,7 @@ class Overlay(QtWidgets.QWidget):
                     self._show_overlay_on_primary()
                 else:
                     self.hide()
+                self._sync_panel_visibility()
                 self._save()
             self.p_toggle_overlay = nt
 

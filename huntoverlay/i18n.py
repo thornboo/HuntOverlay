@@ -134,6 +134,7 @@ _UI = {
         "Minimize to system tray": "最小化到系统托盘",
         "Hold Tab to show overlay": "按住 Tab 显示覆盖层",
         "Block Shift+Tab": "屏蔽 Shift+Tab",
+        "Panel follows Tab (show/hide with overlay)": "菜单跟随 Tab（与覆盖层一起显示/隐藏）",
         "Reset to Default Config": "恢复默认配置",
         "Data: checking...": "数据：检查中...",
         "Data updated: ": "数据已更新：",

@@ -27,12 +27,13 @@ class Panel(QtWidgets.QWidget):
     minimizeToTrayChanged = QtCore.Signal(bool)
     holdTabModeChanged = QtCore.Signal(bool)
     blockShiftTabChanged = QtCore.Signal(bool)
+    panelFollowTabChanged = QtCore.Signal(bool)
     forceRefresh = QtCore.Signal()
     languageChanged = QtCore.Signal(str)  # emits language code; applies on restart
     requestPoiEditor = QtCore.Signal()
 
 
-    def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, p=None):
+    def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, start_panel_follow_tab: bool = False, p=None):
         super().__init__(p, QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
         self.setWindowTitle(APP_TITLE)
         self.setFixedWidth(360)
@@ -213,6 +214,11 @@ class Panel(QtWidgets.QWidget):
         self.chk_block_shift_tab.setChecked(bool(start_block_shift_tab))
         cv.addWidget(self.chk_block_shift_tab)
         self.chk_block_shift_tab.toggled.connect(lambda b: self.blockShiftTabChanged.emit(bool(b)))
+
+        self.chk_panel_follow_tab = QtWidgets.QCheckBox(tr("Panel follows Tab (show/hide with overlay)"))
+        self.chk_panel_follow_tab.setChecked(bool(start_panel_follow_tab))
+        cv.addWidget(self.chk_panel_follow_tab)
+        self.chk_panel_follow_tab.toggled.connect(lambda b: self.panelFollowTabChanged.emit(bool(b)))
 
         cv.addSpacing(4)
         self.btn_reset_cfg = QtWidgets.QPushButton(tr("Reset to Default Config"))

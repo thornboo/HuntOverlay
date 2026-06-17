@@ -84,8 +84,8 @@ class PoiEditorDialog(QtWidgets.QDialog):
         root.addWidget(hint)
 
         # Table of current user points.
-        self.table = QtWidgets.QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["X", "Y", tr("Description")])
+        self.table = QtWidgets.QTableWidget(0, 4)
+        self.table.setHorizontalHeaderLabels(["X", "Y", tr("Description"), tr("Images")])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -99,11 +99,14 @@ class PoiEditorDialog(QtWidgets.QDialog):
         self.sp_y.setRange(user_data.COORD_MIN, user_data.COORD_MAX)
         self.ed_desc = QtWidgets.QLineEdit()
         self.ed_desc.setPlaceholderText(tr("Description"))
+        self.ed_img = QtWidgets.QLineEdit()
+        self.ed_img.setPlaceholderText(tr("Image URLs (comma-separated)"))
         addr.addWidget(QtWidgets.QLabel("X"))
         addr.addWidget(self.sp_x)
         addr.addWidget(QtWidgets.QLabel("Y"))
         addr.addWidget(self.sp_y)
         addr.addWidget(self.ed_desc, 1)
+        addr.addWidget(self.ed_img, 1)
         btn_add = QtWidgets.QPushButton(tr("Add"))
         btn_add.clicked.connect(self._add_point)
         addr.addWidget(btn_add)
@@ -175,13 +178,20 @@ class PoiEditorDialog(QtWidgets.QDialog):
             self.table.setItem(r, 0, QtWidgets.QTableWidgetItem(str(x)))
             self.table.setItem(r, 1, QtWidgets.QTableWidgetItem(str(y)))
             self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(str(pt.get("d", ""))))
+            imgs = pt.get("u", [])
+            img_cell = QtWidgets.QTableWidgetItem(str(len(imgs)) if imgs else "")
+            if imgs:
+                img_cell.setToolTip("\n".join(imgs))
+            self.table.setItem(r, 3, img_cell)
 
     def _add_point(self):
         self._push_undo()
+        imgs = [s.strip() for s in self.ed_img.text().split(",") if s.strip()]
         try:
             self.result_pois = user_data.add_point(
                 self.result_pois, self._cur_map(), self._cur_cat(),
                 self.sp_x.value(), self.sp_y.value(), self.ed_desc.text().strip(),
+                images=imgs,
             )
         except ValueError:
             self._pop_undo()  # nothing changed; discard the snapshot
@@ -189,6 +199,7 @@ class PoiEditorDialog(QtWidgets.QDialog):
                 self, tr("Edit Custom POIs"), tr("Invalid coordinates (need 0-4095)."))
             return
         self.ed_desc.clear()
+        self.ed_img.clear()
         self._refresh_table()
 
     def _delete_selected(self):

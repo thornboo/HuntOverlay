@@ -68,6 +68,22 @@ def test_add_point_without_desc_omits_d():
 
 
 @pytest.mark.unit
+def test_add_point_with_images():
+    new = add_point(empty_user_pois(), "DeSalle", "armories", 1, 2, "n",
+                    images=["http://a/1.png", "http://a/2.png"])
+    pt = get_points(new, "DeSalle", "armories")[0]
+    assert pt["u"] == ["http://a/1.png", "http://a/2.png"]
+
+
+@pytest.mark.unit
+def test_add_point_blank_images_omits_u():
+    new = add_point(empty_user_pois(), "DeSalle", "spawns", 1, 2, images=["", "  "])
+    assert "u" not in get_points(new, "DeSalle", "spawns")[0]
+    new2 = add_point(empty_user_pois(), "DeSalle", "spawns", 1, 2)
+    assert "u" not in get_points(new2, "DeSalle", "spawns")[0]
+
+
+@pytest.mark.unit
 def test_add_point_rejects_out_of_range():
     with pytest.raises(ValueError):
         add_point(empty_user_pois(), "DeSalle", "spawns", 5000, 0)

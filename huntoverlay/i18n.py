@@ -175,6 +175,8 @@ _UI = {
         "Edit Custom POIs": "编辑自定义点位",
         "Category:": "分类：",
         "Description": "描述",
+        "Image URLs (comma-separated)": "图片链接（逗号分隔）",
+        "Images": "图片",
         "Add": "新增",
         "Pick from Map": "从地图拾取",
         "Delete Selected": "删除选中",

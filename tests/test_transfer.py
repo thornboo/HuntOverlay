@@ -53,6 +53,16 @@ def test_export_import_round_trip():
 
 
 @pytest.mark.unit
+def test_export_import_preserves_images():
+    d = user_data.add_point(user_data.empty_user_pois(), "DeSalle", "armories",
+                            10, 20, "n", images=["http://a/1.png"])
+    text = transfer.export_user_pois(d)
+    assert "http://a/1.png" in text
+    back = transfer.import_user_pois(text)
+    assert user_data.get_points(back, "DeSalle", "armories")[0]["u"] == ["http://a/1.png"]
+
+
+@pytest.mark.unit
 def test_import_invalid_json_raises():
     with pytest.raises(ValueError):
         transfer.import_user_pois("{ not json")

@@ -48,10 +48,12 @@ def get_points(data: dict, map_name: str, category: str) -> list:
     return list(data.get("maps", {}).get(map_name, {}).get(category, []))
 
 
-def add_point(data: dict, map_name: str, category: str, x, y, desc: str = "") -> dict:
+def add_point(data: dict, map_name: str, category: str, x, y, desc: str = "",
+              images=None) -> dict:
     """Return a NEW data dict with one user point appended. Does not mutate input.
 
-    Raises ValueError if coordinates are out of range.
+    Raises ValueError if coordinates are out of range. `images` is an optional
+    list of image URLs, stored under "u" to match the data.json point shape.
     """
     if not coord_valid(x, y):
         raise ValueError(f"坐标超出范围（需 {COORD_MIN}–{COORD_MAX}）：({x}, {y})")
@@ -65,6 +67,10 @@ def add_point(data: dict, map_name: str, category: str, x, y, desc: str = "") ->
     point = {"c": [int(round(float(x))), int(round(float(y)))], "_user": True}
     if desc:
         point["d"] = str(desc)
+    if images:
+        urls = [str(u).strip() for u in images if str(u).strip()]
+        if urls:
+            point["u"] = urls
     points.append(point)
     return result
 

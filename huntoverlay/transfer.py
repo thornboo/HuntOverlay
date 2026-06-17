@@ -57,6 +57,8 @@ def export_user_pois(data: dict) -> str:
                 clean = {"c": list(pt["c"])}
                 if pt.get("d"):
                     clean["d"] = pt["d"]
+                if pt.get("u"):
+                    clean["u"] = list(pt["u"])
                 out_pts.append(clean)
             if out_pts:
                 block[cat] = out_pts
@@ -108,6 +110,7 @@ def import_user_pois(text: str, base: dict = None) -> dict:
                     continue
                 if not user_data.coord_valid(c[0], c[1]):
                     continue
+                imgs = pt.get("u") if isinstance(pt.get("u"), list) else None
                 result = user_data.add_point(
-                    result, map_name, cat, c[0], c[1], pt.get("d", ""))
+                    result, map_name, cat, c[0], c[1], pt.get("d", ""), images=imgs)
     return result

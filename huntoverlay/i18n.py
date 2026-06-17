@@ -178,6 +178,10 @@ _UI = {
         "Add": "新增",
         "Pick from Map": "从地图拾取",
         "Delete Selected": "删除选中",
+        "Import": "导入",
+        "Export": "导出",
+        "Copy to Clipboard": "复制到剪贴板",
+        "Paste exported data here": "在此粘贴导出的数据",
         "Close": "关闭",
         "Custom points only (official points are read-only)":
             "仅显示自定义点位（官方点位只读）",

@@ -13,6 +13,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ..constants import MAPS
 from ..i18n import map_display, category_label, tr
 from .. import user_data
+from .. import transfer
 
 
 # POI categories the editor exposes (matches the overlay's render order,
@@ -113,6 +114,12 @@ class PoiEditorDialog(QtWidgets.QDialog):
         btn_del = QtWidgets.QPushButton(tr("Delete Selected"))
         btn_del.clicked.connect(self._delete_selected)
         bot.addWidget(btn_del)
+        btn_import = QtWidgets.QPushButton(tr("Import"))
+        btn_import.clicked.connect(self._import)
+        bot.addWidget(btn_import)
+        btn_export = QtWidgets.QPushButton(tr("Export"))
+        btn_export.clicked.connect(self._export)
+        bot.addWidget(btn_export)
         bot.addStretch(1)
         btn_close = QtWidgets.QPushButton(tr("Close"))
         btn_close.clicked.connect(self.accept)
@@ -181,3 +188,75 @@ class PoiEditorDialog(QtWidgets.QDialog):
             self.result_pois = user_data.remove_point(
                 self.result_pois, self._cur_map(), self._cur_cat(), r)
         self._refresh_table()
+
+    def _export(self):
+        """Show exported text (data.json-compatible) for copy/share."""
+        text = transfer.export_user_pois(self.result_pois)
+        dlg = _TextDialog(tr("Export"), text, read_only=True, icon="", p=self)
+        dlg.exec()
+
+    def _import(self):
+        """Prompt for pasted text and merge the parsed points in."""
+        dlg = _TextDialog(tr("Import"), "", read_only=False, icon="", p=self)
+        if dlg.exec() != QtWidgets.QDialog.Accepted:
+            return
+        text = dlg.text()
+        if not text.strip():
+            return
+        try:
+            self.result_pois = transfer.import_user_pois(text, base=self.result_pois)
+        except ValueError as e:
+            QtWidgets.QMessageBox.warning(self, tr("Import"), str(e))
+            return
+        self._refresh_table()
+
+
+class _TextDialog(QtWidgets.QDialog):
+    """Simple text box for export (read-only, with copy) and import (paste)."""
+
+    def __init__(self, title: str, text: str = "", read_only: bool = False,
+                 icon: str = "", p=None):
+        super().__init__(p)
+        self.setWindowTitle(title)
+        self.setModal(True)
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)
+        self.resize(420, 360)
+        self.setStyleSheet(
+            "QWidget{background:#1e1f22;color:#e6e6e6;font-size:12px;}"
+            "QPlainTextEdit{background:#2b2d30;color:#e6e6e6;border:1px solid #3a3c40;}"
+            "QPushButton{background:#2b2d30;border:1px solid #3a3c40;padding:4px 10px;}"
+            "QPushButton:hover{background:#34363a;}"
+        )
+        v = QtWidgets.QVBoxLayout(self)
+        self.edit = QtWidgets.QPlainTextEdit()
+        self.edit.setPlainText(text)
+        self.edit.setReadOnly(read_only)
+        v.addWidget(self.edit, 1)
+
+        row = QtWidgets.QHBoxLayout()
+        if read_only:
+            btn_copy = QtWidgets.QPushButton(tr("Copy to Clipboard"))
+            btn_copy.clicked.connect(self._copy)
+            row.addWidget(btn_copy)
+            row.addStretch(1)
+            btn_ok = QtWidgets.QPushButton(tr("Close"))
+            btn_ok.clicked.connect(self.accept)
+            row.addWidget(btn_ok)
+        else:
+            self.edit.setPlaceholderText(tr("Paste exported data here"))
+            row.addStretch(1)
+            btn_cancel = QtWidgets.QPushButton(tr("Cancel"))
+            btn_cancel.clicked.connect(self.reject)
+            row.addWidget(btn_cancel)
+            btn_ok = QtWidgets.QPushButton(tr("Import"))
+            btn_ok.clicked.connect(self.accept)
+            row.addWidget(btn_ok)
+        v.addLayout(row)
+
+    def text(self) -> str:
+        return self.edit.toPlainText()
+
+    def _copy(self):
+        QtWidgets.QApplication.clipboard().setText(self.edit.toPlainText())
+
+

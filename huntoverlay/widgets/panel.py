@@ -31,6 +31,7 @@ class Panel(QtWidgets.QWidget):
     forceRefresh = QtCore.Signal()
     languageChanged = QtCore.Signal(str)  # emits language code; applies on restart
     requestPoiEditor = QtCore.Signal()
+    requestRuler = QtCore.Signal()
 
 
     def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, start_panel_follow_tab: bool = False, p=None):
@@ -146,6 +147,10 @@ class Panel(QtWidgets.QWidget):
         self.btn_edit_pois = QtWidgets.QPushButton(tr("Edit POIs"))
         tv.addWidget(self.btn_edit_pois)
         self.btn_edit_pois.clicked.connect(self.requestPoiEditor)
+
+        self.btn_ruler = QtWidgets.QPushButton(tr("Ruler"))
+        tv.addWidget(self.btn_ruler)
+        self.btn_ruler.clicked.connect(self.requestRuler)
 
         tv.addStretch(1)
         tabs.addTab(types_page, tr("POIs"))

@@ -8,8 +8,28 @@ from huntoverlay.geometry import (
     default_rect_ratio_by_aspect,
     rotate90cw_norm,
     norm_to_grid,
+    grid_distance,
+    grid_to_meters,
     overlay_radius_from_spec,
 )
+
+
+@pytest.mark.unit
+def test_grid_distance():
+    assert grid_distance(0, 0, 3, 4) == 5.0
+    assert grid_distance(10, 10, 10, 10) == 0.0
+
+
+@pytest.mark.unit
+def test_grid_to_meters_full_span():
+    # The whole 4095-unit grid is ~1000 m.
+    assert round(grid_to_meters(4095)) == 1000
+    assert grid_to_meters(0) == 0.0
+
+
+@pytest.mark.unit
+def test_grid_to_meters_half():
+    assert round(grid_to_meters(2047.5)) == 500
 
 
 @pytest.mark.unit

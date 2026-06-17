@@ -25,7 +25,7 @@ from .i18n import category_label, map_display, action_labels, tr
 from . import i18n as _i18n
 from .geometry import (
     detect_aspect_label, overlay_radius_from_spec, rotate90cw_norm,
-    norm_to_grid, default_rect_ratio_by_aspect,
+    norm_to_grid, grid_distance, grid_to_meters, default_rect_ratio_by_aspect,
 )
 from .mapdata import (
     detect_data_format, get_map_block, get_category_list, find_style_by_category,
@@ -159,6 +159,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.forceRefresh.connect(self._force_data_refresh)
         self.panel.languageChanged.connect(self._set_language)
         self.panel.requestPoiEditor.connect(self._open_poi_editor)
+        self.panel.requestRuler.connect(self._enter_ruler_mode)
 
         # Seed GUI with current state.
         self.panel.chk_nums.setChecked(self.num_sw)
@@ -201,6 +202,12 @@ class Overlay(QtWidgets.QWidget):
         self._pick_pos = None
         self._pick_map = ""
         self._pick_cat = ""
+
+        # Ruler mode: measure the distance between two clicked points. _ruler_a
+        # is the fixed first point (grid coords); _ruler_pos is the live cursor.
+        self._ruler_mode = False
+        self._ruler_a = None
+        self._ruler_pos = None
 
         # Cache computed point lists per map to avoid rebuilding every frame.
         self.cache = {}
@@ -378,14 +385,49 @@ class Overlay(QtWidgets.QWidget):
         set_mouse_transparent(int(self.winId()), True)  # restore pass-through
         self.update()
 
+    # ── Ruler mode ────────────────────────────────────────────────────────
+    def _enter_ruler_mode(self):
+        """Capture the mouse to measure the distance between two clicks."""
+        self.master = True
+        self.visible = True
+        self._show_overlay_on_primary()
+        self._ruler_mode = True
+        self._ruler_a = None
+        self._ruler_pos = None
+        self.setMouseTracking(True)
+        set_mouse_transparent(int(self.winId()), False)
+        self.update()
+
+    def _exit_ruler_mode(self):
+        self._ruler_mode = False
+        self._ruler_a = None
+        self._ruler_pos = None
+        self.setMouseTracking(False)
+        set_mouse_transparent(int(self.winId()), True)
+        self.update()
+
     def mouseMoveEvent(self, e):
         if self._pick_mode:
             self._pick_pos = e.position()
+            self.update()
+        elif self._ruler_mode:
+            self._ruler_pos = e.position()
             self.update()
         else:
             super().mouseMoveEvent(e)
 
     def mousePressEvent(self, e):
+        if self._ruler_mode:
+            if e.button() == QtCore.Qt.LeftButton and self.rect:
+                gx, gy = self._screen_to_grid(e.position())
+                if self._ruler_a is None:
+                    self._ruler_a = (gx, gy)        # first click: anchor
+                else:
+                    self._ruler_a = None            # third click: restart
+                self.update()
+            else:
+                self._exit_ruler_mode()             # right-click exits
+            return
         if not self._pick_mode:
             super().mousePressEvent(e)
             return
@@ -415,6 +457,8 @@ class Overlay(QtWidgets.QWidget):
             mp, cat = self._pick_map, self._pick_cat
             self._exit_pick_mode()
             self._open_poi_editor(init_map=mp, init_cat=cat)
+        elif self._ruler_mode and e.key() == QtCore.Qt.Key_Escape:
+            self._exit_ruler_mode()
         else:
             super().keyPressEvent(e)
 
@@ -1065,6 +1109,39 @@ class Overlay(QtWidgets.QWidget):
             p.drawRoundedRect(cr, 5, 5)
             p.setPen(QtGui.QPen(QtGui.QColor(255, 211, 77), 1))
             p.drawText(cr.adjusted(6, 3, -6, -3), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, ctxt)
+
+        # Ruler: line from the anchor to the cursor + distance (grid + ~meters).
+        if self._ruler_mode and self._ruler_pos is not None:
+            cur_gx, cur_gy = self._screen_to_grid(self._ruler_pos)
+            cpx, cpy = self._ruler_pos.x(), self._ruler_pos.y()
+            p.setBrush(QtCore.Qt.NoBrush)
+            if self._ruler_a is not None:
+                ax, ay = self._ruler_a
+                # Anchor's screen position from its grid coords.
+                au, av = rotate90cw_norm(ax, ay)
+                apx = self.rect.left() + au * self.rect.width()
+                apy = self.rect.top() + av * self.rect.height()
+                p.setPen(QtGui.QPen(QtGui.QColor(255, 211, 77), 2))
+                p.drawLine(int(apx), int(apy), int(cpx), int(cpy))
+                p.setBrush(QtGui.QColor(255, 211, 77))
+                p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 1))
+                p.drawEllipse(QtCore.QPointF(apx, apy), 4, 4)
+                gdist = grid_distance(ax, ay, cur_gx, cur_gy)
+                meters = grid_to_meters(gdist)
+                rtxt = f"≈ {meters:.0f} m  ({gdist:.0f} u)"
+            else:
+                rtxt = tr("Click to set start point")
+            p.setBrush(QtGui.QColor(255, 211, 77))
+            p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 1))
+            p.drawEllipse(self._ruler_pos, 4, 4)
+            rfm = QtGui.QFontMetrics(p.font())
+            rtw = rfm.horizontalAdvance(rtxt)
+            rr = QtCore.QRectF(cpx + 12, cpy + 12, rtw + 12, rfm.height() + 6)
+            p.setPen(QtCore.Qt.NoPen)
+            p.setBrush(QtGui.QColor(0, 0, 0, 190))
+            p.drawRoundedRect(rr, 5, 5)
+            p.setPen(QtGui.QPen(QtGui.QColor(255, 211, 77), 1))
+            p.drawText(rr.adjusted(6, 3, -6, -3), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, rtxt)
 
         # Hover tooltip: show the description (and image count) of the point
         # under the cursor, if it has one. Skipped while picking.

@@ -83,6 +83,24 @@ def norm_to_grid(u, v):
     return x, y
 
 
+# Hunt maps are ~1km x 1km (community estimate, no exact Crytek figure), so
+# the full 4095-unit grid spans roughly 1000 m.
+GRID_METERS = 1000.0
+GRID_SPAN = 4095.0
+
+
+def grid_distance(x1, y1, x2, y2):
+    """Euclidean distance between two grid points, in grid units."""
+    dx = float(x2) - float(x1)
+    dy = float(y2) - float(y1)
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def grid_to_meters(grid_dist) -> float:
+    """Convert a grid-unit distance to an approximate in-game meter value."""
+    return float(grid_dist) * GRID_METERS / GRID_SPAN
+
+
 def overlay_radius_from_spec(spec_radius) -> int:
     """
     Converts poiData.json radius into a stable on screen radius baseline.

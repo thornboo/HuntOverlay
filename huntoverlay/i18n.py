@@ -178,6 +178,7 @@ _UI = {
         "Add": "新增",
         "Pick from Map": "从地图拾取",
         "Delete Selected": "删除选中",
+        "Undo": "撤销",
         "Import": "导入",
         "Export": "导出",
         "Copy to Clipboard": "复制到剪贴板",

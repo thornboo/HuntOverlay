@@ -58,6 +58,9 @@ class PoiEditorDialog(QtWidgets.QDialog):
         self.result_pois.setdefault("version", 1)
         self.result_pois.setdefault("maps", {})
 
+        # Undo stack: snapshots of result_pois taken before each mutation.
+        self._undo_stack = []
+
         root = QtWidgets.QVBoxLayout(self)
         root.setContentsMargins(10, 10, 10, 10)
         root.setSpacing(8)
@@ -114,6 +117,10 @@ class PoiEditorDialog(QtWidgets.QDialog):
         btn_del = QtWidgets.QPushButton(tr("Delete Selected"))
         btn_del.clicked.connect(self._delete_selected)
         bot.addWidget(btn_del)
+        self.btn_undo = QtWidgets.QPushButton(tr("Undo"))
+        self.btn_undo.clicked.connect(self._undo)
+        self.btn_undo.setEnabled(False)
+        bot.addWidget(self.btn_undo)
         btn_import = QtWidgets.QPushButton(tr("Import"))
         btn_import.clicked.connect(self._import)
         bot.addWidget(btn_import)
@@ -170,12 +177,14 @@ class PoiEditorDialog(QtWidgets.QDialog):
             self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(str(pt.get("d", ""))))
 
     def _add_point(self):
+        self._push_undo()
         try:
             self.result_pois = user_data.add_point(
                 self.result_pois, self._cur_map(), self._cur_cat(),
                 self.sp_x.value(), self.sp_y.value(), self.ed_desc.text().strip(),
             )
         except ValueError:
+            self._pop_undo()  # nothing changed; discard the snapshot
             QtWidgets.QMessageBox.warning(
                 self, tr("Edit Custom POIs"), tr("Invalid coordinates (need 0-4095)."))
             return
@@ -184,9 +193,32 @@ class PoiEditorDialog(QtWidgets.QDialog):
 
     def _delete_selected(self):
         rows = sorted({i.row() for i in self.table.selectedIndexes()}, reverse=True)
+        if not rows:
+            return
+        self._push_undo()
         for r in rows:
             self.result_pois = user_data.remove_point(
                 self.result_pois, self._cur_map(), self._cur_cat(), r)
+        self._refresh_table()
+
+    def _push_undo(self):
+        """Snapshot result_pois before a mutation; cap stack depth."""
+        self._undo_stack.append(copy.deepcopy(self.result_pois))
+        if len(self._undo_stack) > 50:
+            self._undo_stack.pop(0)
+        self.btn_undo.setEnabled(True)
+
+    def _pop_undo(self):
+        """Discard the most recent snapshot (used when a mutation aborted)."""
+        if self._undo_stack:
+            self._undo_stack.pop()
+        self.btn_undo.setEnabled(bool(self._undo_stack))
+
+    def _undo(self):
+        if not self._undo_stack:
+            return
+        self.result_pois = self._undo_stack.pop()
+        self.btn_undo.setEnabled(bool(self._undo_stack))
         self._refresh_table()
 
     def _export(self):
@@ -203,9 +235,11 @@ class PoiEditorDialog(QtWidgets.QDialog):
         text = dlg.text()
         if not text.strip():
             return
+        self._push_undo()
         try:
             self.result_pois = transfer.import_user_pois(text, base=self.result_pois)
         except ValueError as e:
+            self._pop_undo()
             QtWidgets.QMessageBox.warning(self, tr("Import"), str(e))
             return
         self._refresh_table()

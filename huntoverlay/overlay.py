@@ -393,8 +393,17 @@ class Overlay(QtWidgets.QWidget):
             x, y = self._screen_to_grid(e.position())
             mp, cat = self._pick_map, self._pick_cat
             self._exit_pick_mode()
-            # Reopen the editor with the picked coordinate prefilled.
-            self._open_poi_editor(init_map=mp, init_cat=cat, prefill_xy=(x, y))
+            # Single-point edit: the click directly adds one point at the
+            # picked coordinate (current map/category), then reopens the editor
+            # so the user sees it in the list — no extra form step.
+            try:
+                self.user_pois = user_data.add_point(self.user_pois, mp, cat, x, y)
+                user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
+                self._rebuild_all_caches()
+                self.update()
+            except ValueError:
+                pass
+            self._open_poi_editor(init_map=mp, init_cat=cat)
         else:
             # Right-click / other: cancel the pick, reopen editor unchanged.
             mp, cat = self._pick_map, self._pick_cat
@@ -1056,5 +1065,28 @@ class Overlay(QtWidgets.QWidget):
             p.drawRoundedRect(cr, 5, 5)
             p.setPen(QtGui.QPen(QtGui.QColor(255, 211, 77), 1))
             p.drawText(cr.adjusted(6, 3, -6, -3), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, ctxt)
+
+        # Hover tooltip: show the description (and image count) of the point
+        # under the cursor, if it has one. Skipped while picking.
+        if not self._pick_mode and self.hover is not None:
+            raw = self.hover.get("pt_ref", {}).get("raw", {})
+            desc = str(raw.get("d", "")).strip() if isinstance(raw, dict) else ""
+            imgs = raw.get("u", []) if isinstance(raw, dict) else []
+            label = desc
+            if imgs:
+                label = (label + "  " if label else "") + f"[{len(imgs)}]"
+            if label:
+                gp = QtGui.QCursor.pos()
+                lp = self.mapFromGlobal(gp)
+                hx, hy = lp.x(), lp.y()
+                hfm = QtGui.QFontMetrics(p.font())
+                hw = hfm.horizontalAdvance(label)
+                hr = QtCore.QRectF(hx + 14, hy - hfm.height() - 6, hw + 14, hfm.height() + 8)
+                p.setPen(QtCore.Qt.NoPen)
+                p.setBrush(QtGui.QColor(0, 0, 0, 190))
+                p.drawRoundedRect(hr, 5, 5)
+                p.setPen(QtGui.QPen(QtGui.QColor(235, 235, 235), 1))
+                p.drawText(hr.adjusted(7, 4, -7, -4),
+                           QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, label)
 
         p.end()

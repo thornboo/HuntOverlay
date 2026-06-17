@@ -181,6 +181,46 @@ _UI = {
         "Custom points only (official points are read-only)":
             "仅显示自定义点位（官方点位只读）",
         "Invalid coordinates (need 0-4095).": "坐标无效（需 0–4095）。",
+        # Boss reference tab
+        "Bosses": "首领",
+        "Butcher": "屠夫",
+        "Spider": "蜘蛛",
+        "Assassin": "刺客",
+        "Scrapbeak": "废喙",
+        "Fire": "火焰",
+        "Poison": "毒素",
+        "Weak": "弱点",
+        "Immune": "免疫",
+        "Normal": "一般",
+        "Banish time and exact HP vary by patch and are omitted.":
+            "净化时间与精确血量随版本变动，故不列出。",
+        # Butcher tips
+        "Immune to fire — do not waste fire ammo.": "免疫火焰——不要浪费火焰弹药。",
+        "Weak to explosives and close-range shotguns.": "弱点是炸药和近距离霰弹枪。",
+        "Slow mover; keep distance and lead with explosives.":
+            "移动缓慢；保持距离，先用炸药开场。",
+        "Enters a rage phase after heavy damage.": "受到重创后进入狂暴阶段。",
+        # Spider tips
+        "Weak to fire — molotovs, fire ammo, burning lamps.":
+            "弱火——燃烧瓶、火焰弹药、燃烧的油灯。",
+        "Immune to poison; antidote counters its poison spit.":
+            "免疫毒素；解毒针可应对它的毒液喷射。",
+        "Dynamite is effective, especially while it clings to walls/ceiling.":
+            "炸药很有效，尤其在它攀附墙壁/天花板时。",
+        "Can be bled out at low health.": "低血量时可被流血效果消耗致死。",
+        # Assassin tips
+        "Weak to fire — burns even while split into a swarm.":
+            "弱火——即使分裂成蜂群也会持续燃烧。",
+        "Use heavy melee (axe/hammer) during its swarm form.":
+            "蜂群形态时用重型近战（斧/锤）。",
+        "Watch its teleport pattern; strike when it reforms.":
+            "观察它的传送规律；在它重组时攻击。",
+        # Scrapbeak tips
+        "Scrap armor blocks part of firearm damage.": "废甲会抵挡部分枪械伤害。",
+        "Heavy melee bypasses the armor; weaker after losing armor pieces.":
+            "重型近战可无视护甲；掉甲后更脆弱。",
+        "Avoid his barbed wire — it slows and damages you.":
+            "避开它的倒刺铁丝网——会减速并造成伤害。",
     },
 }
 

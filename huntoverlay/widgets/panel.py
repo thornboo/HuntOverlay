@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..constants import APP_TITLE, MAPS
 from ..i18n import map_display, tr, available_languages, get_language
+from .. import boss_data
 from ..win32 import key
 from .dialogs import DotChip
 
@@ -242,6 +243,77 @@ class Panel(QtWidgets.QWidget):
 
         cv.addStretch(1)
         tabs.addTab(cfg_page, tr("Settings"))
+
+        # ── Tab 4: Bosses (reference) ─────────────────────────────────
+        tabs.addTab(self._build_boss_tab(), tr("Bosses"))
+
+    def _build_boss_tab(self):
+        """Read-only boss reference: fire/poison resistance + fight tips."""
+        page = QtWidgets.QWidget()
+        outer = QtWidgets.QVBoxLayout(page)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        inner = QtWidgets.QWidget()
+        bv = QtWidgets.QVBoxLayout(inner)
+        bv.setContentsMargins(8, 8, 8, 8)
+        bv.setSpacing(10)
+
+        res_color = {
+            boss_data.WEAK: "#7ee787",     # green: exploitable
+            boss_data.IMMUNE: "#ff7b72",   # red: useless
+            boss_data.NORMAL: "#9aa0a6",   # gray: no special interaction
+        }
+        res_label = {
+            boss_data.WEAK: tr("Weak"),
+            boss_data.IMMUNE: tr("Immune"),
+            boss_data.NORMAL: tr("Normal"),
+        }
+
+        for key in boss_data.boss_keys():
+            b = boss_data.get_boss(key)
+            if not b:
+                continue
+            card = QtWidgets.QFrame()
+            card.setStyleSheet("QFrame{background:#242629;border:1px solid #3a3c40;border-radius:6px;}")
+            cl = QtWidgets.QVBoxLayout(card)
+            cl.setContentsMargins(10, 8, 10, 8)
+            cl.setSpacing(4)
+
+            title = QtWidgets.QLabel(tr(b["name"]))
+            title.setStyleSheet("font-size:14px;font-weight:bold;color:#e6e6e6;border:0;")
+            cl.addWidget(title)
+
+            # Resistances line.
+            res_row = QtWidgets.QHBoxLayout()
+            res_row.setSpacing(12)
+            for dmg_key, dmg_name in (("fire", tr("Fire")), ("poison", tr("Poison"))):
+                val = b.get(dmg_key, boss_data.NORMAL)
+                lab = QtWidgets.QLabel(f"{dmg_name}: {res_label[val]}")
+                lab.setStyleSheet(f"color:{res_color[val]};border:0;")
+                res_row.addWidget(lab)
+            res_row.addStretch(1)
+            cl.addLayout(res_row)
+
+            for tip in b.get("tips", []):
+                t = QtWidgets.QLabel("• " + tr(tip))
+                t.setWordWrap(True)
+                t.setStyleSheet("color:#cfd1d4;border:0;")
+                cl.addWidget(t)
+
+            bv.addWidget(card)
+
+        note = QtWidgets.QLabel(tr("Banish time and exact HP vary by patch and are omitted."))
+        note.setWordWrap(True)
+        note.setStyleSheet("color:#8a8d93;")
+        bv.addWidget(note)
+        bv.addStretch(1)
+
+        scroll.setWidget(inner)
+        outer.addWidget(scroll)
+        return page
 
     def _dec_scale(self):
         self.scale_box.setValue(max(self.scale_box.minimum(), self.scale_box.value() - 0.05))

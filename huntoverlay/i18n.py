@@ -150,6 +150,8 @@ _UI = {
         "Quit": "退出",
         "Control panel minimized to tray": "控制面板已最小化到托盘",
         "Data: updating...": "数据：正在更新...",
+        "Updating map data...": "正在更新地图数据...",
+        "Downloading images": "正在下载图片",
         # Overlay — runtime errors / map title
         "Error": "错误",
         "HuntOverlay is already running.": "HuntOverlay 已在运行。",

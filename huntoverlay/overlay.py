@@ -84,6 +84,7 @@ def format_last_update(ts):
 
 class Overlay(QtWidgets.QWidget):
     dataUpdateFinished = QtCore.Signal(str)  # emits timestamp string
+    dataUpdateProgress = QtCore.Signal(str)  # emits a status/progress message
 
     def __init__(self):
         super().__init__(None, QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Tool)
@@ -241,6 +242,7 @@ class Overlay(QtWidgets.QWidget):
 
         # Wire data update signal and seed the label with last known timestamp.
         self.dataUpdateFinished.connect(self._on_data_update_finished)
+        self.dataUpdateProgress.connect(self.panel.setLastUpdateText)
         self.panel.setLastUpdateText(format_last_update(load_update_meta().get("last_check", "")))
         self._start_update_check()
 
@@ -515,6 +517,7 @@ class Overlay(QtWidgets.QWidget):
 
     def _run_data_update(self):
         """Runs in a background thread. Downloads both files then emits the finished signal."""
+        self.dataUpdateProgress.emit(tr("Updating map data..."))
         ok_data  = fetch_remote_file(DATA_URL,  DATA_PATH)
         ok_style = fetch_remote_file(STYLE_URL, STYLE_PATH)
         ts = datetime.now().isoformat(timespec="seconds") if (ok_data or ok_style) else ""
@@ -532,14 +535,22 @@ class Overlay(QtWidgets.QWidget):
 
         Runs in the update background thread. Whitelisted hosts only (see
         images.is_allowed_image_url); each failure is skipped so one bad URL
-        never aborts the batch.
+        never aborts the batch. Progress is reported via dataUpdateProgress.
         """
         try:
             os.makedirs(IMG_CACHE_DIR, exist_ok=True)
             data = load_json(DATA_PATH)
             urls = _images.collect_image_urls(data)
-            for url in _images.missing_images(IMG_CACHE_DIR, urls):
+            missing = _images.missing_images(IMG_CACHE_DIR, urls)
+            total = len(missing)
+            if not total:
+                return
+            for i, url in enumerate(missing, 1):
                 _ds.fetch_image(url, _images.cache_path(IMG_CACHE_DIR, url))
+                # Throttle UI updates: every 10 images and on the last one.
+                if i % 10 == 0 or i == total:
+                    self.dataUpdateProgress.emit(
+                        tr("Downloading images") + f" {i}/{total}")
         except Exception:
             pass
 

@@ -11,6 +11,7 @@ instead of read from module-level globals.
 """
 
 import json
+import os
 import urllib.request
 from datetime import datetime, timedelta
 
@@ -50,6 +51,32 @@ def fetch_remote_file(url: str, dst: str) -> bool:
         json.loads(raw.decode("utf-8"))  # validate before overwriting
         with open(dst, "wb") as f:
             f.write(raw)
+        return True
+    except Exception:
+        return False
+
+
+# Cap a single image download to avoid pathological payloads (8 MB).
+_MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+def fetch_image(url: str, dst: str) -> bool:
+    """Download an image to dst. Returns True on success.
+
+    SAFETY: callers must pass only whitelisted image URLs (see images.
+    is_allowed_image_url). Downloads are size-capped and written atomically
+    (temp file then rename) so a partial download never leaves a corrupt
+    cache entry.
+    """
+    try:
+        with urllib.request.urlopen(url, timeout=15) as r:
+            raw = r.read(_MAX_IMAGE_BYTES + 1)
+        if not raw or len(raw) > _MAX_IMAGE_BYTES:
+            return False
+        tmp = dst + ".part"
+        with open(tmp, "wb") as f:
+            f.write(raw)
+        os.replace(tmp, dst)
         return True
     except Exception:
         return False

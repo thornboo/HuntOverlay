@@ -18,6 +18,8 @@ CONFIG_PATH = os.path.join(udir(), "config.json")
 META_PATH = os.path.join(udir(), "update_meta.json")
 # User-authored POIs; never overwritten by remote data refreshes.
 USER_POIS_PATH = os.path.join(udir(), "user_pois.json")
+# Cache directory for downloaded POI reference images.
+IMG_CACHE_DIR = os.path.join(udir(), "img_cache")
 
 
 def data_path() -> str:

@@ -36,9 +36,10 @@ from .config import (
     load_or_replace_config as _load_or_replace_config,
 )
 from . import data_source as _ds
+from . import images as _images
 from .qt_adapters import q2rgb, rgb2q, qcolor_from_any, screenWH
 from .win32 import key, topmost, click_through, set_mouse_transparent
-from .runtime import ICON, CONFIG_PATH, META_PATH, USER_POIS_PATH, data_path, style_path
+from .runtime import ICON, CONFIG_PATH, META_PATH, USER_POIS_PATH, IMG_CACHE_DIR, data_path, style_path
 from .widgets.panel import Panel
 from .widgets.dialogs import KeyCaptureDialog
 from .widgets.poi_editor import PoiEditorDialog
@@ -208,6 +209,10 @@ class Overlay(QtWidgets.QWidget):
         self._ruler_mode = False
         self._ruler_a = None
         self._ruler_pos = None
+
+        # Decoded hover-preview pixmaps, memoized by cache path (path -> QPixmap
+        # or None). Avoids re-reading the disk every paint frame.
+        self._hover_pm_cache = {}
 
         # Cache computed point lists per map to avoid rebuilding every frame.
         self.cache = {}
@@ -469,6 +474,32 @@ class Overlay(QtWidgets.QWidget):
         v = (pos.y() - self.rect.top()) / max(1, self.rect.height())
         return norm_to_grid(u, v)
 
+    def _hover_pixmap(self, urls):
+        """Return a scaled QPixmap for the first cached image in urls, or None.
+
+        Reads from the local image cache only (never downloads here). Decoded
+        pixmaps are memoized by cache path so paintEvent does not hit the disk
+        every frame. Missing/unreadable files yield None.
+        """
+        if not urls:
+            return None
+        url = urls[0]
+        path = _images.cache_path(IMG_CACHE_DIR, url)
+        if not os.path.isfile(path):
+            return None
+        cached = self._hover_pm_cache.get(path)
+        if cached is not None:
+            return cached
+        pm = QtGui.QPixmap(path)
+        if pm.isNull():
+            self._hover_pm_cache[path] = None
+            return None
+        # Cap the preview size so it never dominates the screen.
+        pm = pm.scaled(280, 280, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        self._hover_pm_cache[path] = pm
+        return pm
+
+
 
     def _force_data_refresh(self):
         self.panel.setLastUpdateText(tr("Data: updating..."))
@@ -491,7 +522,26 @@ class Overlay(QtWidgets.QWidget):
         if ok_data or ok_style:
             meta["last_check"] = ts
             save_update_meta(meta)
+        # Incrementally cache POI reference images (same background thread, so
+        # it never blocks the UI). Best-effort: failures are silent.
+        self._download_missing_images()
         self.dataUpdateFinished.emit(ts)
+
+    def _download_missing_images(self):
+        """Download any not-yet-cached POI images from the current data.
+
+        Runs in the update background thread. Whitelisted hosts only (see
+        images.is_allowed_image_url); each failure is skipped so one bad URL
+        never aborts the batch.
+        """
+        try:
+            os.makedirs(IMG_CACHE_DIR, exist_ok=True)
+            data = load_json(DATA_PATH)
+            urls = _images.collect_image_urls(data)
+            for url in _images.missing_images(IMG_CACHE_DIR, urls):
+                _ds.fetch_image(url, _images.cache_path(IMG_CACHE_DIR, url))
+        except Exception:
+            pass
 
     def _on_data_update_finished(self, ts: str):
         """Slot — runs on the main thread after the background download completes."""
@@ -1165,5 +1215,18 @@ class Overlay(QtWidgets.QWidget):
                 p.setPen(QtGui.QPen(QtGui.QColor(235, 235, 235), 1))
                 p.drawText(hr.adjusted(7, 4, -7, -4),
                            QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, label)
+
+                # Show the first cached reference image above the text bubble.
+                pm = self._hover_pixmap(imgs)
+                if pm is not None and not pm.isNull():
+                    iw, ih = pm.width(), pm.height()
+                    ix = hx + 14
+                    iy = hr.top() - ih - 6
+                    if iy < 4:  # not enough room above: place below the cursor
+                        iy = hy + 18
+                    p.setPen(QtCore.Qt.NoPen)
+                    p.setBrush(QtGui.QColor(0, 0, 0, 200))
+                    p.drawRoundedRect(QtCore.QRectF(ix - 3, iy - 3, iw + 6, ih + 6), 5, 5)
+                    p.drawPixmap(int(ix), int(iy), pm)
 
         p.end()

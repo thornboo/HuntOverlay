@@ -13,12 +13,20 @@ from PySide6 import QtGui, QtWidgets
 from .constants import APP_TITLE
 from .i18n import tr
 from .runtime import ICON
+from .win32 import acquire_single_instance
 from .overlay import Overlay
 
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
     QtWidgets.QApplication.setStyle("Fusion")
+
+    # Refuse to launch a second copy: stacked overlays confuse users (e.g.
+    # toggling one's POIs leaves the other's showing). First instance wins.
+    if not acquire_single_instance():
+        QtWidgets.QMessageBox.information(
+            None, APP_TITLE, tr("HuntOverlay is already running."))
+        sys.exit(0)
 
     # Consistent dark palette for the panel.
     pal = app.palette()

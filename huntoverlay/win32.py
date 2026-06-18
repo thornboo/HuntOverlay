@@ -12,6 +12,10 @@ calls only run on Windows.
 import ctypes
 
 _user32 = None
+_kernel32 = None
+# Held mutex handle for the single-instance lock (kept alive for the process
+# lifetime; the OS releases it on exit).
+_instance_mutex = None
 
 
 def _u32():
@@ -19,6 +23,13 @@ def _u32():
     if _user32 is None:
         _user32 = ctypes.windll.user32  # only resolvable on Windows
     return _user32
+
+
+def _k32():
+    global _kernel32
+    if _kernel32 is None:
+        _kernel32 = ctypes.windll.kernel32
+    return _kernel32
 
 
 def key(vk: int) -> bool:
@@ -62,3 +73,27 @@ def set_mouse_transparent(hwnd: int, transparent: bool) -> None:
         _u32().SetWindowLongW(hwnd, -20, style)
     except Exception:
         pass
+
+
+_ERROR_ALREADY_EXISTS = 183
+
+
+def acquire_single_instance(name: str = "HuntOverlay_SingleInstance") -> bool:
+    """Try to claim a process-wide single-instance lock via a named mutex.
+
+    Returns True if this is the first/only instance (lock acquired), or False
+    if another instance already holds it. The mutex handle is kept for the
+    process lifetime; Windows releases it automatically on exit. On any error
+    (or non-Windows), returns True so the app still launches.
+    """
+    global _instance_mutex
+    try:
+        handle = _k32().CreateMutexW(None, False, name)
+        if not handle:
+            return True
+        if _k32().GetLastError() == _ERROR_ALREADY_EXISTS:
+            return False
+        _instance_mutex = handle  # keep alive
+        return True
+    except Exception:
+        return True

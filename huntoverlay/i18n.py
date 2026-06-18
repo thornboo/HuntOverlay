@@ -152,6 +152,7 @@ _UI = {
         "Data: updating...": "数据：正在更新...",
         # Overlay — runtime errors / map title
         "Error": "错误",
+        "HuntOverlay is already running.": "HuntOverlay 已在运行。",
         "Missing data.json": "缺少 data.json",
         "Missing poiData.json": "缺少 poiData.json",
         "Unrecognized data.json format": "无法识别 data.json 数据格式",

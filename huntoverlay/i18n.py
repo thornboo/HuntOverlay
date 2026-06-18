@@ -136,6 +136,7 @@ _UI = {
         "Block Shift+Tab": "屏蔽 Shift+Tab",
         "Panel follows Tab (show/hide with overlay)": "菜单跟随 Tab（与覆盖层一起显示/隐藏）",
         "Reset to Default Config": "恢复默认配置",
+        "Open Data Folder": "打开应用数据目录",
         "Data: checking...": "数据：检查中...",
         "Data updated: ": "数据已更新：",
         "Data: never updated": "数据：从未更新",

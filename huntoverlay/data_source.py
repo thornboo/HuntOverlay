@@ -66,10 +66,16 @@ def fetch_image(url: str, dst: str) -> bool:
     SAFETY: callers must pass only whitelisted image URLs (see images.
     is_allowed_image_url). Downloads are size-capped and written atomically
     (temp file then rename) so a partial download never leaves a corrupt
-    cache entry.
+    cache entry. A normal User-Agent is sent so imgur does not reject the
+    default urllib agent.
     """
     try:
-        with urllib.request.urlopen(url, timeout=15) as r:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/124.0 Safari/537.36",
+        })
+        with urllib.request.urlopen(req, timeout=15) as r:
             raw = r.read(_MAX_IMAGE_BYTES + 1)
         if not raw or len(raw) > _MAX_IMAGE_BYTES:
             return False

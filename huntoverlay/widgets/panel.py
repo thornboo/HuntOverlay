@@ -32,6 +32,7 @@ class Panel(QtWidgets.QWidget):
     languageChanged = QtCore.Signal(str)  # emits language code; applies on restart
     requestPoiEditor = QtCore.Signal()
     requestRuler = QtCore.Signal()
+    requestOpenDataDir = QtCore.Signal()
 
 
     def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, start_panel_follow_tab: bool = False, p=None):
@@ -229,6 +230,10 @@ class Panel(QtWidgets.QWidget):
         self.btn_reset_cfg = QtWidgets.QPushButton(tr("Reset to Default Config"))
         cv.addWidget(self.btn_reset_cfg)
         self.btn_reset_cfg.clicked.connect(self.resetConfig)
+
+        self.btn_open_data_dir = QtWidgets.QPushButton(tr("Open Data Folder"))
+        cv.addWidget(self.btn_open_data_dir)
+        self.btn_open_data_dir.clicked.connect(self.requestOpenDataDir)
 
         cv.addSpacing(8)
 

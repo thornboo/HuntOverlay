@@ -85,6 +85,7 @@ def format_last_update(ts):
 class Overlay(QtWidgets.QWidget):
     dataUpdateFinished = QtCore.Signal(str)  # emits timestamp string
     dataUpdateProgress = QtCore.Signal(str)  # emits a status/progress message
+    imageReady = QtCore.Signal()             # an on-demand image finished downloading
 
     def __init__(self):
         super().__init__(None, QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Tool)
@@ -162,6 +163,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.languageChanged.connect(self._set_language)
         self.panel.requestPoiEditor.connect(self._open_poi_editor)
         self.panel.requestRuler.connect(self._enter_ruler_mode)
+        self.panel.requestOpenDataDir.connect(self._open_data_dir)
 
         # Seed GUI with current state.
         self.panel.chk_nums.setChecked(self.num_sw)
@@ -196,6 +198,8 @@ class Overlay(QtWidgets.QWidget):
         # Hover state is computed each tick when visible.
         self.hover = None
         self.hover_radius = 10
+        # Last hovered point identity, to repaint only when it changes.
+        self._last_hover_id = None
 
         # POI pick mode: when active, the overlay captures the mouse (click-
         # through is temporarily disabled) and the next click yields a grid
@@ -214,6 +218,8 @@ class Overlay(QtWidgets.QWidget):
         # Decoded hover-preview pixmaps, memoized by cache path (path -> QPixmap
         # or None). Avoids re-reading the disk every paint frame.
         self._hover_pm_cache = {}
+        # URLs currently being downloaded on demand (de-dupe repeated hovers).
+        self._img_inflight = set()
 
         # Cache computed point lists per map to avoid rebuilding every frame.
         self.cache = {}
@@ -243,6 +249,7 @@ class Overlay(QtWidgets.QWidget):
         # Wire data update signal and seed the label with last known timestamp.
         self.dataUpdateFinished.connect(self._on_data_update_finished)
         self.dataUpdateProgress.connect(self.panel.setLastUpdateText)
+        self.imageReady.connect(self.update)
         self.panel.setLastUpdateText(format_last_update(load_update_meta().get("last_check", "")))
         self._start_update_check()
 
@@ -392,6 +399,14 @@ class Overlay(QtWidgets.QWidget):
         set_mouse_transparent(int(self.winId()), True)  # restore pass-through
         self.update()
 
+    def _open_data_dir(self):
+        """Open the app data folder (%LOCALAPPDATA%\\HuntOverlay) in the file
+        manager via Qt's cross-platform handler."""
+        try:
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(udir()))
+        except Exception:
+            pass
+
     # ── Ruler mode ────────────────────────────────────────────────────────
     def _enter_ruler_mode(self):
         """Capture the mouse to measure the distance between two clicks."""
@@ -488,6 +503,9 @@ class Overlay(QtWidgets.QWidget):
         url = urls[0]
         path = _images.cache_path(IMG_CACHE_DIR, url)
         if not os.path.isfile(path):
+            # Not cached yet: kick off an on-demand download (method B); it
+            # repaints via imageReady when done. Return None for now.
+            self._request_image_download(url)
             return None
         cached = self._hover_pm_cache.get(path)
         if cached is not None:
@@ -525,40 +543,41 @@ class Overlay(QtWidgets.QWidget):
         if ok_data or ok_style:
             meta["last_check"] = ts
             save_update_meta(meta)
-        # Incrementally cache POI reference images (same background thread, so
-        # it never blocks the UI). Best-effort: failures are silent.
-        self._download_missing_images()
-        self.dataUpdateFinished.emit(ts)
-
-    def _download_missing_images(self):
-        """Download any not-yet-cached POI images from the current data.
-
-        Runs in the update background thread. Whitelisted hosts only (see
-        images.is_allowed_image_url); each failure is skipped so one bad URL
-        never aborts the batch. Progress is reported via dataUpdateProgress.
-        """
+        # POI images are fetched on demand when hovering (imgur rate-limits
+        # bulk downloads), not eagerly here. Sweep any stale .part leftovers.
         try:
-            os.makedirs(IMG_CACHE_DIR, exist_ok=True)
-            data = load_json(DATA_PATH)
-            urls = _images.collect_image_urls(data)
-            missing = _images.missing_images(IMG_CACHE_DIR, urls)
-            total = len(missing)
-            if not total:
-                return
-            for i, url in enumerate(missing, 1):
-                _ds.fetch_image(url, _images.cache_path(IMG_CACHE_DIR, url))
-                # Throttle UI updates: every 10 images and on the last one.
-                if i % 10 == 0 or i == total:
-                    self.dataUpdateProgress.emit(
-                        tr("Downloading images") + f" {i}/{total}")
+            _images.cleanup_partials(IMG_CACHE_DIR)
         except Exception:
             pass
-        finally:
-            # Sweep any .part leftovers from interrupted downloads.
+        self.dataUpdateFinished.emit(ts)
+
+    def _request_image_download(self, url: str):
+        """On-demand download of a single image (method B), off the UI thread.
+
+        Triggered when hovering a point whose image is not cached yet. imgur
+        rate-limits bulk fetches, so we only pull the few images the user
+        actually looks at. De-duped via _img_inflight so repeated hovers do
+        not queue the same URL twice; repaints when done so the image appears.
+        """
+        if not _images.is_allowed_image_url(url):
+            return
+        path = _images.cache_path(IMG_CACHE_DIR, url)
+        if os.path.isfile(path) or url in self._img_inflight:
+            return
+        self._img_inflight.add(url)
+
+        def worker():
             try:
-                _images.cleanup_partials(IMG_CACHE_DIR)
+                os.makedirs(IMG_CACHE_DIR, exist_ok=True)
+                _ds.fetch_image(url, path)
             except Exception:
                 pass
+            finally:
+                self._img_inflight.discard(url)
+                # Repaint on the main thread so the new image shows up.
+                self.imageReady.emit()
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _on_data_update_finished(self, ts: str):
         """Slot — runs on the main thread after the background download completes."""
@@ -1070,7 +1089,14 @@ class Overlay(QtWidgets.QWidget):
             self._hide_hovered()
         self.p_hide_hovered = hide_now
 
-        self.update()
+        # Only repaint when something visible actually changed, instead of
+        # forcing 60 fps of full redraws (which made ruler/hover feel laggy).
+        # Pick/ruler modes drive their own repaints from mouse-move events.
+        hover_id = id(self.hover.get("pt_ref")) if self.hover else None
+        if not self._pick_mode and not self._ruler_mode:
+            if self.visible and hover_id != self._last_hover_id:
+                self.update()
+        self._last_hover_id = hover_id
 
     def _edit_keybind(self, action: str):
         """
@@ -1216,34 +1242,36 @@ class Overlay(QtWidgets.QWidget):
             raw = self.hover.get("pt_ref", {}).get("raw", {})
             desc = str(raw.get("d", "")).strip() if isinstance(raw, dict) else ""
             imgs = raw.get("u", []) if isinstance(raw, dict) else []
-            label = desc
-            if imgs:
-                label = (label + "  " if label else "") + f"[{len(imgs)}]"
-            if label:
-                gp = QtGui.QCursor.pos()
-                lp = self.mapFromGlobal(gp)
-                hx, hy = lp.x(), lp.y()
+            gp = QtGui.QCursor.pos()
+            lp = self.mapFromGlobal(gp)
+            hx, hy = lp.x(), lp.y()
+
+            # Text bubble only when there is an actual description (no more
+            # meaningless "[1]" image-count badge).
+            bubble_top = hy - 6
+            if desc:
                 hfm = QtGui.QFontMetrics(p.font())
-                hw = hfm.horizontalAdvance(label)
+                hw = hfm.horizontalAdvance(desc)
                 hr = QtCore.QRectF(hx + 14, hy - hfm.height() - 6, hw + 14, hfm.height() + 8)
                 p.setPen(QtCore.Qt.NoPen)
                 p.setBrush(QtGui.QColor(0, 0, 0, 190))
                 p.drawRoundedRect(hr, 5, 5)
                 p.setPen(QtGui.QPen(QtGui.QColor(235, 235, 235), 1))
                 p.drawText(hr.adjusted(7, 4, -7, -4),
-                           QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, label)
+                           QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, desc)
+                bubble_top = hr.top()
 
-                # Show the first cached reference image above the text bubble.
-                pm = self._hover_pixmap(imgs)
-                if pm is not None and not pm.isNull():
-                    iw, ih = pm.width(), pm.height()
-                    ix = hx + 14
-                    iy = hr.top() - ih - 6
-                    if iy < 4:  # not enough room above: place below the cursor
-                        iy = hy + 18
-                    p.setPen(QtCore.Qt.NoPen)
-                    p.setBrush(QtGui.QColor(0, 0, 0, 200))
-                    p.drawRoundedRect(QtCore.QRectF(ix - 3, iy - 3, iw + 6, ih + 6), 5, 5)
-                    p.drawPixmap(int(ix), int(iy), pm)
+            # Reference image (downloaded on demand) shown above the bubble.
+            pm = self._hover_pixmap(imgs)
+            if pm is not None and not pm.isNull():
+                iw, ih = pm.width(), pm.height()
+                ix = hx + 14
+                iy = bubble_top - ih - 6
+                if iy < 4:  # not enough room above: place below the cursor
+                    iy = hy + 18
+                p.setPen(QtCore.Qt.NoPen)
+                p.setBrush(QtGui.QColor(0, 0, 0, 200))
+                p.drawRoundedRect(QtCore.QRectF(ix - 3, iy - 3, iw + 6, ih + 6), 5, 5)
+                p.drawPixmap(int(ix), int(iy), pm)
 
         p.end()

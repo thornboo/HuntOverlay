@@ -84,3 +84,22 @@ def missing_images(cache_dir: str, urls) -> list:
         if not os.path.isfile(cache_path(cache_dir, u)):
             out.append(u)
     return out
+
+
+def cleanup_partials(cache_dir: str) -> int:
+    """Delete leftover '.part' temp files from interrupted downloads.
+
+    Returns the number removed. Safe to call anytime: completed images use
+    their final name, so removing '.part' files never touches valid cache.
+    """
+    removed = 0
+    if not os.path.isdir(cache_dir):
+        return 0
+    for name in os.listdir(cache_dir):
+        if name.endswith(".part"):
+            try:
+                os.remove(os.path.join(cache_dir, name))
+                removed += 1
+            except OSError:
+                pass
+    return removed

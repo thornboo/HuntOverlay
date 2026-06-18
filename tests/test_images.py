@@ -80,3 +80,22 @@ def test_cache_path_under_dir():
     p = images.cache_path("/tmp/cache", "https://i.imgur.com/a.png")
     assert p.startswith("/tmp/cache")
     assert os.path.basename(p).endswith(".png")
+
+
+@pytest.mark.unit
+def test_cleanup_partials(tmp_path):
+    cache = str(tmp_path)
+    # Two .part leftovers + one real cached file.
+    open(os.path.join(cache, "aaa.png.part"), "w").close()
+    open(os.path.join(cache, "bbb.jpg.part"), "w").close()
+    open(os.path.join(cache, "ccc.png"), "w").close()
+    removed = images.cleanup_partials(cache)
+    assert removed == 2
+    # Real cache file survives; .part files gone.
+    assert os.path.isfile(os.path.join(cache, "ccc.png"))
+    assert not os.path.isfile(os.path.join(cache, "aaa.png.part"))
+
+
+@pytest.mark.unit
+def test_cleanup_partials_missing_dir():
+    assert images.cleanup_partials("/no/such/dir") == 0

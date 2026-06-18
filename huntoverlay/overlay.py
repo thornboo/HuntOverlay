@@ -553,6 +553,12 @@ class Overlay(QtWidgets.QWidget):
                         tr("Downloading images") + f" {i}/{total}")
         except Exception:
             pass
+        finally:
+            # Sweep any .part leftovers from interrupted downloads.
+            try:
+                _images.cleanup_partials(IMG_CACHE_DIR)
+            except Exception:
+                pass
 
     def _on_data_update_finished(self, ts: str):
         """Slot — runs on the main thread after the background download completes."""

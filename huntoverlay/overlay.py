@@ -8,6 +8,7 @@ config/meta helpers that now take explicit paths).
 """
 
 import json
+import math
 import os
 import threading
 import time
@@ -438,10 +439,15 @@ class Overlay(QtWidgets.QWidget):
 
     def mouseMoveEvent(self, e):
         if self._pick_mode:
+            old_pos = self._pick_pos
+            if self._same_pixel(old_pos, e.position()):
+                return
             self._pick_pos = e.position()
-            self.update()
+            self._update_pick_region(old_pos, self._pick_pos)
         elif self._ruler_mode:
             old_pos = self._ruler_pos
+            if self._same_pixel(old_pos, e.position()):
+                return
             self._ruler_pos = e.position()
             self._update_ruler_region(old_pos, self._ruler_pos)
         else:
@@ -450,13 +456,14 @@ class Overlay(QtWidgets.QWidget):
     def mousePressEvent(self, e):
         if self._ruler_mode:
             if e.button() == QtCore.Qt.LeftButton and self.rect:
-                old_dirty = self._ruler_dirty_rect(e.position())
+                self._ruler_pos = e.position()
+                old_dirty = self._ruler_dirty_region(self._ruler_pos)
                 gx, gy = self._screen_to_grid(e.position())
                 if self._ruler_a is None:
                     self._ruler_a = (gx, gy)        # first click: anchor
                 else:
                     self._ruler_a = None            # third click: restart
-                self._update_rect(old_dirty.united(self._ruler_dirty_rect(e.position())))
+                self._update_region(old_dirty.united(self._ruler_dirty_region(self._ruler_pos)))
             else:
                 self._exit_ruler_mode()             # right-click exits
             return
@@ -494,38 +501,91 @@ class Overlay(QtWidgets.QWidget):
         else:
             super().keyPressEvent(e)
 
-    def _update_rect(self, rect: QtCore.QRect):
-        """Request a bounded repaint, falling back to a full repaint if empty."""
-        if rect.isNull() or rect.isEmpty():
+    def _update_region(self, region: QtGui.QRegion):
+        """Request a bounded repaint region, falling back to a full repaint."""
+        if region is None or region.isEmpty():
             self.update()
             return
-        self.update(rect)
+        self.update(region)
 
-    def _ruler_dirty_rect(self, pos) -> QtCore.QRect:
-        """Widget-local region affected by the ruler line, cursor dot, and label."""
+    def _same_pixel(self, a, b) -> bool:
+        if a is None or b is None:
+            return False
+        return int(a.x()) == int(b.x()) and int(a.y()) == int(b.y())
+
+    def _tool_bounds(self) -> QtCore.QRect:
+        return QtCore.QRect(0, 0, max(1, self.width()), max(1, self.height()))
+
+    def _bounded_region(self, region: QtGui.QRegion) -> QtGui.QRegion:
+        return region.intersected(QtGui.QRegion(self._tool_bounds()))
+
+    def _point_dirty_region(self, pos, label_width: int = 220, label_height: int = 76) -> QtGui.QRegion:
         if pos is None:
-            return QtCore.QRect()
-
+            return QtGui.QRegion()
         x, y = int(pos.x()), int(pos.y())
-        dirty = QtCore.QRect(x - 22, y - 22, 280, 96)
+        region = QtGui.QRegion(QtCore.QRect(x - 24, y - 24, 48, 48))
+        region = region.united(QtGui.QRegion(QtCore.QRect(x + 8, y + 8, label_width, label_height)))
+        return region
 
-        if self._ruler_a is not None and self.rect:
-            ax, ay = self._ruler_a
-            au, av = rotate90cw_norm(ax, ay)
-            apx = int(self.rect.left() + au * self.rect.width())
-            apy = int(self.rect.top() + av * self.rect.height())
-            line = QtCore.QRect(
-                QtCore.QPoint(min(apx, x), min(apy, y)),
-                QtCore.QPoint(max(apx, x), max(apy, y)),
-            ).normalized().adjusted(-16, -16, 16, 16)
-            dirty = dirty.united(line)
+    def _pick_dirty_region(self, pos) -> QtGui.QRegion:
+        """Region affected by the pick crosshair, cursor dot, and coord label."""
+        if pos is None or not self.rect:
+            return QtGui.QRegion()
+        x, y = int(pos.x()), int(pos.y())
+        region = self._point_dirty_region(pos)
+        region = region.united(QtGui.QRegion(QtCore.QRect(self.rect.left(), y - 3, self.rect.width(), 7)))
+        region = region.united(QtGui.QRegion(QtCore.QRect(x - 3, self.rect.top(), 7, self.rect.height())))
+        return self._bounded_region(region)
 
-        bounds = QtCore.QRect(0, 0, max(1, self.width()), max(1, self.height()))
-        return dirty.adjusted(-8, -8, 8, 8).intersected(bounds)
+    def _update_pick_region(self, old_pos, new_pos):
+        dirty = self._pick_dirty_region(old_pos).united(self._pick_dirty_region(new_pos))
+        self._update_region(dirty)
+
+    def _line_dirty_region(self, ax: float, ay: float, bx: float, by: float, width: int = 18) -> QtGui.QRegion:
+        dx = bx - ax
+        dy = by - ay
+        length = math.hypot(dx, dy)
+        if length <= 0.5:
+            return QtGui.QRegion(QtCore.QRect(int(ax) - width, int(ay) - width, width * 2, width * 2))
+
+        half = width / 2.0
+        nx = -dy / length * half
+        ny = dx / length * half
+        poly = QtGui.QPolygon([
+            QtCore.QPoint(int(round(ax + nx)), int(round(ay + ny))),
+            QtCore.QPoint(int(round(bx + nx)), int(round(by + ny))),
+            QtCore.QPoint(int(round(bx - nx)), int(round(by - ny))),
+            QtCore.QPoint(int(round(ax - nx)), int(round(ay - ny))),
+        ])
+        return QtGui.QRegion(poly)
+
+    def _ruler_anchor_pos(self):
+        if self._ruler_a is None or not self.rect:
+            return None
+        ax, ay = self._ruler_a
+        au, av = rotate90cw_norm(ax, ay)
+        return QtCore.QPointF(
+            self.rect.left() + au * self.rect.width(),
+            self.rect.top() + av * self.rect.height(),
+        )
+
+    def _ruler_dirty_region(self, pos) -> QtGui.QRegion:
+        """Region affected by the ruler line, cursor dot, and label."""
+        if pos is None:
+            return QtGui.QRegion()
+
+        dirty = self._point_dirty_region(pos, label_width=280, label_height=96)
+
+        anchor_pos = self._ruler_anchor_pos()
+        if anchor_pos is not None:
+            dirty = dirty.united(self._point_dirty_region(anchor_pos, label_width=0, label_height=0))
+            dirty = dirty.united(self._line_dirty_region(anchor_pos.x(), anchor_pos.y(), pos.x(), pos.y()))
+
+        return self._bounded_region(dirty)
 
     def _update_ruler_region(self, old_pos, new_pos):
-        dirty = self._ruler_dirty_rect(old_pos).united(self._ruler_dirty_rect(new_pos))
-        self._update_rect(dirty)
+        dirty = self._ruler_dirty_region(old_pos).united(self._ruler_dirty_region(new_pos))
+        self._update_region(dirty)
 
     def _screen_to_grid(self, pos):
         """Map a cursor position (overlay-local) inside self.rect back to a
@@ -1241,8 +1301,8 @@ class Overlay(QtWidgets.QWidget):
         p.setRenderHint(QtGui.QPainter.Antialiasing)
 
         pts_by_type = self.cache.get(self.prof, {})
-        dirty = ev.rect().adjusted(-48, -48, 48, 48) if ev is not None else \
-            QtCore.QRect(0, 0, max(1, self.width()), max(1, self.height()))
+        dirty_region = ev.region() if ev is not None else \
+            QtGui.QRegion(QtCore.QRect(0, 0, max(1, self.width()), max(1, self.height())))
 
         for tkey in self.type_order:
             if not self.types.get(tkey, {}).get("enabled", True):
@@ -1270,7 +1330,7 @@ class Overlay(QtWidgets.QWidget):
                     int((scaled + 3) * 2),
                     int((scaled + 3) * 2),
                 )
-                if not dirty.intersects(point_rect):
+                if not dirty_region.intersects(point_rect):
                     continue
                 p.drawEllipse(
                     QtCore.QPointF(cx, cy),

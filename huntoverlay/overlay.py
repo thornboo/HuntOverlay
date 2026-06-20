@@ -86,6 +86,7 @@ def format_last_update(ts):
 class Overlay(QtWidgets.QWidget):
     dataUpdateFinished = QtCore.Signal(str)  # emits timestamp string
     dataUpdateProgress = QtCore.Signal(str)  # emits a status/progress message
+    imageDownloadFinished = QtCore.Signal(str, bool)  # url, success
     imageReady = QtCore.Signal()             # an on-demand image finished downloading
 
     def __init__(self):
@@ -172,7 +173,7 @@ class Overlay(QtWidgets.QWidget):
         for k in self.type_order:
             self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
 
-        self._position_panel_right_center()
+        self._position_panel_top_right()
 
         # System tray setup.
         self.tray = None
@@ -243,7 +244,7 @@ class Overlay(QtWidgets.QWidget):
             self.panel.hide()
         else:
             self.panel.show()
-            self._position_panel_right_center()
+            self._position_panel_top_right()
         # Timer tick drives input polling and hover updates.
         self.t = QtCore.QTimer(self)
         self.t.timeout.connect(self._tick_safe)
@@ -255,6 +256,7 @@ class Overlay(QtWidgets.QWidget):
         # Wire data update signal and seed the label with last known timestamp.
         self.dataUpdateFinished.connect(self._on_data_update_finished)
         self.dataUpdateProgress.connect(self.panel.setLastUpdateText)
+        self.imageDownloadFinished.connect(self._on_image_download_finished)
         self.imageReady.connect(self.update)
         self.panel.setLastUpdateText(format_last_update(load_update_meta().get("last_check", "")))
         self._start_update_check()
@@ -310,7 +312,7 @@ class Overlay(QtWidgets.QWidget):
 
     def _restore_panel_from_tray(self):
         self.panel.showNormal()
-        self._position_panel_right_center()
+        self._position_panel_top_right()
         self.panel.raise_()
         self.panel.activateWindow()
 
@@ -329,7 +331,7 @@ class Overlay(QtWidgets.QWidget):
             self._sync_panel_visibility()
         elif not self.minimize_to_tray:
             self.panel.show()
-            self._position_panel_right_center()
+            self._position_panel_top_right()
         self._save()
 
     def _sync_panel_visibility(self):
@@ -341,7 +343,7 @@ class Overlay(QtWidgets.QWidget):
             return
         if self.visible:
             self.panel.show()
-            self._position_panel_right_center()
+            self._position_panel_top_right()
         else:
             self.panel.hide()
 
@@ -664,17 +666,24 @@ class Overlay(QtWidgets.QWidget):
             except Exception:
                 pass
             finally:
-                if ok and os.path.isfile(path) and _images.cached_image_valid(path):
-                    self._img_status[url] = "ready"
-                    self._img_failed_at.pop(url, None)
-                else:
-                    self._img_status[url] = "failed"
-                    self._img_failed_at[url] = time.monotonic()
-                self._img_inflight.discard(url)
-                # Repaint on the main thread so the new image shows up.
-                self.imageReady.emit()
+                self.imageDownloadFinished.emit(url, ok)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_image_download(self, url: str, ok: bool):
+        path = _images.cache_path(IMG_CACHE_DIR, url)
+        if ok and os.path.isfile(path) and _images.cached_image_valid(path):
+            self._img_status[url] = "ready"
+            self._img_failed_at.pop(url, None)
+        else:
+            self._img_status[url] = "failed"
+            self._img_failed_at[url] = time.monotonic()
+        self._img_inflight.discard(url)
+
+    def _on_image_download_finished(self, url: str, ok: bool):
+        """Slot — runs on the main thread after an image worker completes."""
+        self._finish_image_download(url, ok)
+        self.imageReady.emit()
 
     def _on_data_update_finished(self, ts: str):
         """Slot — runs on the main thread after the background download completes."""
@@ -905,7 +914,7 @@ class Overlay(QtWidgets.QWidget):
             max(1, int(rr["rh"] * H))
         )
     
-    def _position_panel_right_center(self):
+    def _position_panel_top_right(self):
         """Place the control panel against the top-right corner.
 
         Top-right keeps it clear of the central overlay marker band and of

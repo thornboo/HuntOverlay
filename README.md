@@ -24,7 +24,7 @@ logic improvements. The original author's documentation has been folded into thi
 - Custom POI editor: a GUI to add/remove your own marker points, stored
   separately so online data refreshes never overwrite them
 - One-click select-all / deselect-all for POI categories
-- Control panel moved to the right edge, vertically centered, clear of the overlay
+- Control panel moved to the top-right edge, clear of the overlay
 
 **Data & stability**
 - Refreshed bundled POI data and filled in missing category styles
@@ -82,7 +82,7 @@ Always comply with the game's Terms of Service.
 - Locally saved user configuration
 - Per-category soft-hiding of specific POIs
 - One-click select-all / deselect-all for POI categories
-- Control panel anchored to the right edge, vertically centered, clear of the overlay
+- Control panel anchored to the top-right edge, clear of the overlay
 - Can be packaged as a portable single-file exe
 - Localized Chinese UI
 

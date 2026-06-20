@@ -1,11 +1,13 @@
 """Unit tests for huntoverlay.data_source — meta/update logic, no network."""
 
+import json
 import os
 from datetime import datetime, timedelta
 
 import pytest
 
 from huntoverlay.data_source import (
+    fetch_remote_file,
     fetch_image,
     load_update_meta,
     save_update_meta,
@@ -97,6 +99,26 @@ def test_last_update_status():
     status, when = last_update_status("2026-06-15T14:30:00")
     assert status == "updated"
     assert when == "2026-06-15 14:30"
+
+
+@pytest.mark.unit
+def test_fetch_remote_file_preserves_existing_file_when_replace_fails(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "huntoverlay.data_source.urllib.request.urlopen",
+        lambda *_args, **_kwargs: _FakeResponse(b'{"new": true}'),
+    )
+
+    dst = tmp_path / "data.json"
+    dst.write_text('{"old": true}', encoding="utf-8")
+
+    def fail_replace(_src, _dst):
+        raise OSError("replace failed")
+
+    monkeypatch.setattr("huntoverlay.paths.os.replace", fail_replace)
+
+    assert fetch_remote_file("https://example.com/data.json", str(dst)) is False
+    assert json.loads(dst.read_text(encoding="utf-8")) == {"old": True}
+    assert list(tmp_path.glob(".data.json.*.tmp")) == []
 
 
 @pytest.mark.unit

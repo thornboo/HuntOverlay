@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime, timedelta
 
 from . import images as _images
-from .paths import load_json, save_json
+from .paths import atomic_write_bytes, load_json, save_json
 
 # Default cadence for the legacy "needs update?" check (6h): keeps POI data
 # reasonably fresh without hitting the upstream server on every launch.
@@ -50,8 +50,7 @@ def fetch_remote_file(url: str, dst: str) -> bool:
         with urllib.request.urlopen(url, timeout=15) as r:  # https only, see constants
             raw = r.read()
         json.loads(raw.decode("utf-8"))  # validate before overwriting
-        with open(dst, "wb") as f:
-            f.write(raw)
+        atomic_write_bytes(dst, raw)
         return True
     except Exception:
         return False

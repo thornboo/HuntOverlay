@@ -20,6 +20,96 @@ function Fail {
     throw $Message
 }
 
+function Test-PathWithin {
+    param(
+        [string]$Path,
+        [string]$RootPath
+    )
+
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $fullRoot = [System.IO.Path]::GetFullPath($RootPath)
+    if ($fullPath.Equals($fullRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+
+    $separator = [string][System.IO.Path]::DirectorySeparatorChar
+    if (-not $fullRoot.EndsWith($separator)) {
+        $fullRoot = $fullRoot + $separator
+    }
+    return $fullPath.StartsWith($fullRoot, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Stop-BuildProductProcesses {
+    param([string[]]$ProductPaths)
+
+    $processes = Get-Process -Name "HuntOverlay*" -ErrorAction SilentlyContinue
+    foreach ($proc in $processes) {
+        $exePath = $null
+        try {
+            $exePath = $proc.MainModule.FileName
+        } catch {
+            continue
+        }
+        if (-not $exePath) {
+            continue
+        }
+
+        $ownedByThisBuild = $false
+        foreach ($productPath in $ProductPaths) {
+            if (Test-PathWithin $exePath $productPath) {
+                $ownedByThisBuild = $true
+                break
+            }
+        }
+        if (-not $ownedByThisBuild) {
+            continue
+        }
+
+        Write-Host "停止旧构建进程：$($proc.ProcessName) (PID $($proc.Id))" -ForegroundColor Yellow
+        try {
+            Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+            Wait-Process -Id $proc.Id -Timeout 5 -ErrorAction SilentlyContinue
+        } catch {
+            Write-Host "进程停止失败，稍后删除旧产物时会再次检测文件锁：$($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+}
+
+function Remove-PathWithRetry {
+    param(
+        [string]$Path,
+        [string]$Label,
+        [int]$Attempts = 5,
+        [int]$DelayMilliseconds = 800
+    )
+
+    if (-not (Test-Path $Path)) {
+        return
+    }
+
+    for ($i = 1; $i -le $Attempts; $i++) {
+        try {
+            Remove-Item $Path -Recurse -Force -ErrorAction Stop
+            Write-Host "已删除 $Label"
+            return
+        } catch {
+            if ($i -lt $Attempts) {
+                Write-Host "删除 $Label 失败，等待后重试（$i/$Attempts）：$($_.Exception.Message)" -ForegroundColor Yellow
+                Start-Sleep -Milliseconds $DelayMilliseconds
+                continue
+            }
+
+            Fail @"
+无法删除 $Label：$Path
+原因：$($_.Exception.Message)
+
+通常是旧的 HuntOverlay.exe 仍在运行，或资源管理器/杀毒软件暂时锁住了 dist 目录里的 DLL。
+请关闭正在运行的 HuntOverlay、关闭打开在 dist\HuntOverlay 下的资源管理器窗口，等待几秒后重新执行构建。
+"@
+        }
+    }
+}
+
 function Get-PythonVersion {
     param([string]$PythonExe)
     $code = "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
@@ -137,12 +227,13 @@ Write-Step "确认 PyInstaller"
 
 if ($Clean) {
     Write-Step "清理旧的构建缓存"
+    Stop-BuildProductProcesses @(
+        (Join-Path $Root "dist\HuntOverlay"),
+        (Join-Path $Root "dist\HuntOverlay-portable.exe")
+    )
     foreach ($dir in @("build", "dist")) {
         $target = Join-Path $Root $dir
-        if (Test-Path $target) {
-            Remove-Item $target -Recurse -Force
-            Write-Host "已删除 $dir\"
-        }
+        Remove-PathWithRetry $target "$dir\"
     }
     Get-ChildItem $Root -Filter "*.spec" | Remove-Item -Force -ErrorAction SilentlyContinue
 }
@@ -164,6 +255,16 @@ function Invoke-Build {
     # Distinct names so onedir and onefile products never collide under dist\.
     $name = if ($BuildMode -eq "onefile") { "HuntOverlay-portable" } else { "HuntOverlay" }
     $modeArg = if ($BuildMode -eq "onefile") { "--onefile" } else { "--onedir" }
+    $outputPath = if ($BuildMode -eq "onefile") {
+        Join-Path $Root "dist\$name.exe"
+    } else {
+        Join-Path $Root "dist\$name"
+    }
+    $workPath = Join-Path $Root "build\$name"
+
+    Stop-BuildProductProcesses @($outputPath)
+    Remove-PathWithRetry $outputPath "旧构建产物 $name"
+    Remove-PathWithRetry $workPath "旧构建缓存 $name"
 
     Write-Step "开始构建 $BuildMode（$name）"
     & $VenvPython -m PyInstaller $modeArg "--name" $name @commonArgs

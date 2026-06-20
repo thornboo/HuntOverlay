@@ -107,10 +107,10 @@ def collect_image_urls(game_data) -> list:
 
 
 def missing_images(cache_dir: str, urls) -> list:
-    """Subset of urls not yet present in the cache (incremental download)."""
+    """Subset of urls not yet present as valid cached images."""
     out = []
     for u in urls:
-        if not os.path.isfile(cache_path(cache_dir, u)):
+        if not cached_image_valid(cache_path(cache_dir, u)):
             out.append(u)
     return out
 

@@ -87,7 +87,9 @@ def format_last_update(ts):
 class Overlay(QtWidgets.QWidget):
     dataUpdateFinished = QtCore.Signal(str)  # emits timestamp string
     dataUpdateProgress = QtCore.Signal(str)  # emits a status/progress message
+    imageDownloadStarted = QtCore.Signal(str)
     imageDownloadFinished = QtCore.Signal(str, bool)  # url, success
+    imagePrefetchFinished = QtCore.Signal(object)
     imageReady = QtCore.Signal()             # an on-demand image finished downloading
 
     def __init__(self):
@@ -164,8 +166,9 @@ class Overlay(QtWidgets.QWidget):
         self.panel.panelFollowTabChanged.connect(self._set_panel_follow_tab)
         self.panel.forceRefresh.connect(self._force_data_refresh)
         self.panel.languageChanged.connect(self._set_language)
-        self.panel.requestPoiEditor.connect(self._open_poi_editor)
+        self.panel.requestPoiEditor.connect(self._start_poi_pick_mode)
         self.panel.requestRuler.connect(self._enter_ruler_mode)
+        self.panel.requestClearRulers.connect(self._clear_rulers)
         self.panel.requestOpenDataDir.connect(self._open_data_dir)
 
         # Seed GUI with current state.
@@ -219,6 +222,9 @@ class Overlay(QtWidgets.QWidget):
         self._ruler_mode = False
         self._ruler_a = None
         self._ruler_pos = None
+        self._ruler_hover_delete = None
+        self._rulers = []
+        self._ruler_endpoint_radius = 14
 
         # Decoded hover-preview pixmaps, memoized by cache path (path -> QPixmap
         # or None). Avoids re-reading the disk every paint frame.
@@ -228,6 +234,9 @@ class Overlay(QtWidgets.QWidget):
         # url -> "loading" | "ready" | "failed"; used for visible feedback.
         self._img_status = {}
         self._img_failed_at = {}
+        self._img_prefetch_queued = set()
+        self._image_prefetch_running = False
+        self._image_prefetch_pending = False
 
         # Cache computed point lists per map to avoid rebuilding every frame.
         self.cache = {}
@@ -257,10 +266,13 @@ class Overlay(QtWidgets.QWidget):
         # Wire data update signal and seed the label with last known timestamp.
         self.dataUpdateFinished.connect(self._on_data_update_finished)
         self.dataUpdateProgress.connect(self.panel.setLastUpdateText)
+        self.imageDownloadStarted.connect(self._on_image_download_started)
         self.imageDownloadFinished.connect(self._on_image_download_finished)
+        self.imagePrefetchFinished.connect(self._on_image_prefetch_finished)
         self.imageReady.connect(self.update)
         self.panel.setLastUpdateText(format_last_update(load_update_meta().get("last_check", "")))
         self._start_update_check()
+        self._start_image_prefetch(self.game_data)
 
     def eventFilter(self, obj, ev):
         if obj is self.panel:
@@ -382,6 +394,15 @@ class Overlay(QtWidgets.QWidget):
         if dlg.pick_requested:
             self._enter_pick_mode(dlg.pick_map, dlg.pick_cat)
 
+    def _start_poi_pick_mode(self, category: str = ""):
+        """Enter continuous direct-pick mode for user POIs."""
+        cat = str(category or "")
+        if cat not in self.type_order or cat == "possible_xp":
+            cat = next((t for t in self.type_order if t != "possible_xp"), "")
+        if not cat:
+            return
+        self._enter_pick_mode(self.prof, cat)
+
     # ── POI pick mode ─────────────────────────────────────────────────────
     def _enter_pick_mode(self, pick_map: str, pick_cat: str):
         """Switch the overlay to the target map and capture the mouse so the
@@ -451,12 +472,17 @@ class Overlay(QtWidgets.QWidget):
         if self._ruler_mode:
             if e.button() == QtCore.Qt.LeftButton and self.rect:
                 self._ruler_pos = e.position()
+                if self._ruler_hover_delete is not None:
+                    self._delete_hovered_ruler()
+                    return
+
                 old_dirty = self._ruler_dirty_region(self._ruler_pos)
                 gx, gy = self._screen_to_grid(e.position())
                 if self._ruler_a is None:
                     self._ruler_a = (gx, gy)        # first click: anchor
                 else:
-                    self._ruler_a = None            # third click: restart
+                    self._rulers.append({"map": self.prof, "a": self._ruler_a, "b": (gx, gy)})
+                    self._ruler_a = None            # completed; next click starts another ruler
                 self._update_region(old_dirty.united(self._ruler_dirty_region(self._ruler_pos)))
             else:
                 self._exit_ruler_mode()             # right-click exits
@@ -467,10 +493,6 @@ class Overlay(QtWidgets.QWidget):
         if e.button() == QtCore.Qt.LeftButton and self.rect:
             x, y = self._screen_to_grid(e.position())
             mp, cat = self._pick_map, self._pick_cat
-            self._exit_pick_mode()
-            # Single-point edit: the click directly adds one point at the
-            # picked coordinate (current map/category), then reopens the editor
-            # so the user sees it in the list — no extra form step.
             try:
                 self.user_pois = user_data.add_point(self.user_pois, mp, cat, x, y)
                 user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
@@ -478,18 +500,13 @@ class Overlay(QtWidgets.QWidget):
                 self.update()
             except ValueError:
                 pass
-            self._open_poi_editor(init_map=mp, init_cat=cat)
         else:
-            # Right-click / other: cancel the pick, reopen editor unchanged.
-            mp, cat = self._pick_map, self._pick_cat
+            # Right-click / other: cancel continuous pick mode.
             self._exit_pick_mode()
-            self._open_poi_editor(init_map=mp, init_cat=cat)
 
     def keyPressEvent(self, e):
         if self._pick_mode and e.key() == QtCore.Qt.Key_Escape:
-            mp, cat = self._pick_map, self._pick_cat
             self._exit_pick_mode()
-            self._open_poi_editor(init_map=mp, init_cat=cat)
         elif self._ruler_mode and e.key() == QtCore.Qt.Key_Escape:
             self._exit_ruler_mode()
         else:
@@ -521,8 +538,11 @@ class Overlay(QtWidgets.QWidget):
         old_pos = self._ruler_pos
         if self._same_pixel(old_pos, pos):
             return False
+        old_dirty = self._ruler_dirty_region(old_pos).united(self._ruler_delete_dirty_region(self._ruler_hover_delete))
         self._ruler_pos = QtCore.QPointF(pos)
-        self._update_ruler_region(old_pos, self._ruler_pos)
+        self._ruler_hover_delete = self._hit_ruler_endpoint(self._ruler_pos)
+        new_dirty = self._ruler_dirty_region(self._ruler_pos).united(self._ruler_delete_dirty_region(self._ruler_hover_delete))
+        self._update_region(old_dirty.united(new_dirty))
         return True
 
     def _poll_tool_cursor(self):
@@ -589,11 +609,93 @@ class Overlay(QtWidgets.QWidget):
         if self._ruler_a is None or not self.rect:
             return None
         ax, ay = self._ruler_a
-        au, av = rotate90cw_norm(ax, ay)
+        return self._grid_to_screen_pos(ax, ay)
+
+    def _grid_to_screen_pos(self, gx, gy):
+        au, av = rotate90cw_norm(gx, gy)
         return QtCore.QPointF(
             self.rect.left() + au * self.rect.width(),
             self.rect.top() + av * self.rect.height(),
         )
+
+    def _ruler_distance_text(self, a, b) -> str:
+        ax, ay = a
+        bx, by = b
+        gdist = grid_distance(ax, ay, bx, by)
+        meters = grid_to_meters(gdist)
+        return f"≈ {meters:.0f} m  ({gdist:.0f} u)"
+
+    def _iter_current_rulers(self):
+        for idx, item in enumerate(self._rulers):
+            if item.get("map") == self.prof:
+                yield idx, item
+
+    def _hit_ruler_endpoint(self, pos):
+        if pos is None or not self.rect:
+            return None
+        px, py = float(pos.x()), float(pos.y())
+        radius2 = float(self._ruler_endpoint_radius * self._ruler_endpoint_radius)
+        for idx, item in self._iter_current_rulers():
+            for endpoint in ("a", "b"):
+                ep = item.get(endpoint)
+                if not ep:
+                    continue
+                sp = self._grid_to_screen_pos(ep[0], ep[1])
+                dx = px - sp.x()
+                dy = py - sp.y()
+                if dx * dx + dy * dy <= radius2:
+                    return (idx, endpoint)
+        return None
+
+    def _ruler_delete_dirty_region(self, hit) -> QtGui.QRegion:
+        if hit is None or not self.rect:
+            return QtGui.QRegion()
+        idx, endpoint = hit
+        if not (0 <= idx < len(self._rulers)):
+            return QtGui.QRegion()
+        ep = self._rulers[idx].get(endpoint)
+        if not ep:
+            return QtGui.QRegion()
+        sp = self._grid_to_screen_pos(ep[0], ep[1])
+        x, y = int(sp.x()), int(sp.y())
+        return self._bounded_region(QtGui.QRegion(QtCore.QRect(x - 20, y - 20, 40, 40)))
+
+    def _delete_hovered_ruler(self):
+        hit = self._ruler_hover_delete
+        if hit is None:
+            return
+        dirty = self._ruler_delete_dirty_region(hit)
+        idx, _endpoint = hit
+        if 0 <= idx < len(self._rulers):
+            item = self._rulers[idx]
+            dirty = dirty.united(self._stored_ruler_dirty_region(item))
+            del self._rulers[idx]
+        self._ruler_hover_delete = None
+        self._update_region(dirty)
+
+    def _clear_rulers(self):
+        if not self._rulers:
+            return
+        self._rulers = []
+        self._ruler_hover_delete = None
+        self.update()
+
+    def _stored_ruler_dirty_region(self, item) -> QtGui.QRegion:
+        if not item or not self.rect:
+            return QtGui.QRegion()
+        a = item.get("a")
+        b = item.get("b")
+        if not a or not b:
+            return QtGui.QRegion()
+        ap = self._grid_to_screen_pos(a[0], a[1])
+        bp = self._grid_to_screen_pos(b[0], b[1])
+        dirty = self._line_dirty_region(ap.x(), ap.y(), bp.x(), bp.y(), width=24)
+        dirty = dirty.united(self._point_dirty_region(ap, label_width=0, label_height=0))
+        dirty = dirty.united(self._point_dirty_region(bp, label_width=0, label_height=0))
+        midx = int((ap.x() + bp.x()) / 2)
+        midy = int((ap.y() + bp.y()) / 2)
+        dirty = dirty.united(QtGui.QRegion(QtCore.QRect(midx - 90, midy - 28, 180, 56)))
+        return self._bounded_region(dirty)
 
     def _ruler_dirty_region(self, pos) -> QtGui.QRegion:
         """Region affected by the ruler line, cursor dot, and label."""
@@ -609,10 +711,6 @@ class Overlay(QtWidgets.QWidget):
 
         return self._bounded_region(dirty)
 
-    def _update_ruler_region(self, old_pos, new_pos):
-        dirty = self._ruler_dirty_region(old_pos).united(self._ruler_dirty_region(new_pos))
-        self._update_region(dirty)
-
     def _screen_to_grid(self, pos):
         """Map a cursor position (overlay-local) inside self.rect back to a
         0-4095 grid coordinate via the inverse of the render transform."""
@@ -623,8 +721,10 @@ class Overlay(QtWidgets.QWidget):
     def _hover_pixmap(self, urls):
         """Return a scaled QPixmap for the first cached image in urls, or None.
 
-        Missing images trigger an on-demand download. Bad cache files are
-        removed so a later hover can retry instead of being permanently stuck.
+        Startup/data refresh prefetches the full cache in the background.
+        Hover still triggers a priority download for missing images so the
+        user does not wait for the prefetch queue to reach this URL. Bad cache
+        files are removed so a later hover can retry instead of being stuck.
         """
         if not urls:
             return None
@@ -710,21 +810,59 @@ class Overlay(QtWidgets.QWidget):
         if ok_data or ok_style:
             meta["last_check"] = ts
             save_update_meta(meta)
-        # POI images are fetched on demand when hovering (imgur rate-limits
-        # bulk downloads), not eagerly here. Sweep any stale .part leftovers.
+        # Image cache prefetch happens in a separate throttled worker after
+        # startup/data refresh. Sweep any stale .part leftovers first.
         try:
             _images.cleanup_partials(IMG_CACHE_DIR)
         except Exception:
             pass
         self.dataUpdateFinished.emit(ts)
 
+    def _image_cache_missing(self, url: str) -> bool:
+        path = _images.cache_path(IMG_CACHE_DIR, url)
+        return not (os.path.isfile(path) and _images.cached_image_valid(path))
+
+    def _start_image_prefetch(self, game_data=None):
+        if self._image_prefetch_running:
+            self._image_prefetch_pending = True
+            return
+
+        urls = _images.collect_image_urls(game_data if game_data is not None else self.game_data)
+        missing = [url for url in urls if self._image_cache_missing(url)]
+        if not missing:
+            return
+
+        self._image_prefetch_running = True
+        self._img_prefetch_queued.update(missing)
+
+        def worker(urls_to_fetch):
+            try:
+                os.makedirs(IMG_CACHE_DIR, exist_ok=True)
+                for url in urls_to_fetch:
+                    if not _images.is_allowed_image_url(url):
+                        continue
+                    if not self._image_cache_missing(url):
+                        continue
+                    if url in self._img_inflight:
+                        continue
+
+                    path = _images.cache_path(IMG_CACHE_DIR, url)
+                    self.imageDownloadStarted.emit(url)
+                    ok = _ds.fetch_image(url, path)
+                    self.imageDownloadFinished.emit(url, ok)
+            finally:
+                self.imagePrefetchFinished.emit(urls_to_fetch)
+
+        threading.Thread(target=worker, args=(list(missing),), daemon=True).start()
+
     def _request_image_download(self, url: str):
         """On-demand download of a single image (method B), off the UI thread.
 
-        Triggered when hovering a point whose image is not cached yet. imgur
-        rate-limits bulk fetches, so we only pull the few images the user
-        actually looks at. De-duped via _img_inflight so repeated hovers do
-        not queue the same URL twice; repaints when done so the image appears.
+        Triggered when hovering a point whose image is not cached yet. The
+        background prefetch normally fills the cache, but hover is prioritized
+        so a visible point is not blocked behind the full startup queue.
+        De-duped via _img_inflight so repeated hovers do not queue the same
+        URL twice; repaints when done so the image appears.
         """
         if not _images.is_allowed_image_url(url):
             self._img_status[url] = "failed"
@@ -743,6 +881,7 @@ class Overlay(QtWidgets.QWidget):
 
         self._img_inflight.add(url)
         self._img_status[url] = "loading"
+        self._img_prefetch_queued.discard(url)
 
         def worker():
             ok = False
@@ -756,6 +895,11 @@ class Overlay(QtWidgets.QWidget):
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def _on_image_download_started(self, url: str):
+        self._img_prefetch_queued.discard(url)
+        self._img_inflight.add(url)
+        self._img_status[url] = "loading"
+
     def _finish_image_download(self, url: str, ok: bool):
         path = _images.cache_path(IMG_CACHE_DIR, url)
         if ok and os.path.isfile(path) and _images.cached_image_valid(path):
@@ -765,11 +909,28 @@ class Overlay(QtWidgets.QWidget):
             self._img_status[url] = "failed"
             self._img_failed_at[url] = time.monotonic()
         self._img_inflight.discard(url)
+        self._img_prefetch_queued.discard(url)
 
     def _on_image_download_finished(self, url: str, ok: bool):
         """Slot — runs on the main thread after an image worker completes."""
         self._finish_image_download(url, ok)
-        self.imageReady.emit()
+        if self._hover_uses_image_url(url):
+            self.imageReady.emit()
+
+    def _hover_uses_image_url(self, url: str) -> bool:
+        if self.hover is None:
+            return False
+        raw = self.hover.get("pt_ref", {}).get("raw", {})
+        imgs = raw.get("u", []) if isinstance(raw, dict) else []
+        return url in imgs
+
+    def _on_image_prefetch_finished(self, urls):
+        for url in urls or []:
+            self._img_prefetch_queued.discard(url)
+        self._image_prefetch_running = False
+        if self._image_prefetch_pending:
+            self._image_prefetch_pending = False
+            self._start_image_prefetch(self.game_data)
 
     def _on_data_update_finished(self, ts: str):
         """Slot — runs on the main thread after the background download completes."""
@@ -781,6 +942,7 @@ class Overlay(QtWidgets.QWidget):
                 self.type_specs = self._build_type_specs()
                 self._rebuild_all_caches()
                 self.update()
+                self._start_image_prefetch(self.game_data)
             except Exception:
                 pass
         self.panel.setLastUpdateText(format_last_update(ts if ts else load_update_meta().get("last_check", "")))
@@ -1408,6 +1570,49 @@ class Overlay(QtWidgets.QWidget):
             p.setPen(QtGui.QPen(QtGui.QColor(255, 211, 77), 1))
             p.drawText(cr.adjusted(6, 3, -6, -3), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, ctxt)
 
+        # Stored rulers for the current map.
+        for ridx, item in self._iter_current_rulers():
+            a = item.get("a")
+            b = item.get("b")
+            if not a or not b:
+                continue
+            ap = self._grid_to_screen_pos(a[0], a[1])
+            bp = self._grid_to_screen_pos(b[0], b[1])
+            p.setBrush(QtCore.Qt.NoBrush)
+            p.setPen(QtGui.QPen(QtGui.QColor(100, 220, 180), 2))
+            p.drawLine(int(ap.x()), int(ap.y()), int(bp.x()), int(bp.y()))
+            p.setBrush(QtGui.QColor(100, 220, 180))
+            p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 1))
+            p.drawEllipse(ap, 4, 4)
+            p.drawEllipse(bp, 4, 4)
+
+            rtxt = self._ruler_distance_text(a, b)
+            rfm = QtGui.QFontMetrics(p.font())
+            rtw = rfm.horizontalAdvance(rtxt)
+            midx = (ap.x() + bp.x()) / 2
+            midy = (ap.y() + bp.y()) / 2
+            rr = QtCore.QRectF(midx - (rtw + 12) / 2, midy - rfm.height() - 10,
+                               rtw + 12, rfm.height() + 6)
+            p.setPen(QtCore.Qt.NoPen)
+            p.setBrush(QtGui.QColor(0, 0, 0, 170))
+            p.drawRoundedRect(rr, 5, 5)
+            p.setPen(QtGui.QPen(QtGui.QColor(100, 220, 180), 1))
+            p.drawText(rr.adjusted(6, 3, -6, -3), QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, rtxt)
+
+        if self._ruler_mode and self._ruler_hover_delete is not None:
+            idx, endpoint = self._ruler_hover_delete
+            if 0 <= idx < len(self._rulers):
+                ep = self._rulers[idx].get(endpoint)
+                if ep:
+                    sp = self._grid_to_screen_pos(ep[0], ep[1])
+                    x, y = int(sp.x()), int(sp.y())
+                    p.setBrush(QtGui.QColor(190, 45, 45, 220))
+                    p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 1))
+                    p.drawEllipse(QtCore.QPointF(x, y), 10, 10)
+                    p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 2))
+                    p.drawLine(x - 4, y - 4, x + 4, y + 4)
+                    p.drawLine(x + 4, y - 4, x - 4, y + 4)
+
         # Ruler: line from the anchor to the cursor + distance (grid + ~meters).
         if self._ruler_mode and self._ruler_pos is not None:
             cur_gx, cur_gy = self._screen_to_grid(self._ruler_pos)
@@ -1424,9 +1629,7 @@ class Overlay(QtWidgets.QWidget):
                 p.setBrush(QtGui.QColor(255, 211, 77))
                 p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 1))
                 p.drawEllipse(QtCore.QPointF(apx, apy), 4, 4)
-                gdist = grid_distance(ax, ay, cur_gx, cur_gy)
-                meters = grid_to_meters(gdist)
-                rtxt = f"≈ {meters:.0f} m  ({gdist:.0f} u)"
+                rtxt = self._ruler_distance_text((ax, ay), (cur_gx, cur_gy))
             else:
                 rtxt = tr("Click to set start point")
             p.setBrush(QtGui.QColor(255, 211, 77))

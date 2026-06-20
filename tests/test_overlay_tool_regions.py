@@ -132,3 +132,39 @@ def test_update_region_repaints_immediately(monkeypatch, tmp_path):
 
     assert len(calls) == 1
     assert calls[0][0] is region
+
+
+@pytest.mark.unit
+def test_start_poi_pick_mode_uses_real_category(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    calls = []
+    state = SimpleNamespace(
+        type_order=["possible_xp", "armories", "towers"],
+        prof="DeSalle",
+        _enter_pick_mode=lambda map_name, category: calls.append((map_name, category)),
+    )
+
+    overlay.Overlay._start_poi_pick_mode(state, "possible_xp")
+
+    assert calls == [("DeSalle", "armories")]
+
+
+@pytest.mark.unit
+def test_clear_rulers_removes_all_maps(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    calls = []
+    state = SimpleNamespace(
+        prof="DeSalle",
+        _rulers=[
+            {"map": "DeSalle", "a": (1, 2), "b": (3, 4)},
+            {"map": "Lawson Delta", "a": (5, 6), "b": (7, 8)},
+        ],
+        _ruler_hover_delete=(0, "a"),
+        update=lambda: calls.append("update"),
+    )
+
+    overlay.Overlay._clear_rulers(state)
+
+    assert state._rulers == []
+    assert state._ruler_hover_delete is None
+    assert calls == ["update"]

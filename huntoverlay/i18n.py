@@ -177,8 +177,10 @@ _UI = {
         "OK": "确定",
         "Cancel": "取消",
         # POI editor
+        "POI type:": "点位类型：",
         "Edit POIs": "编辑点位",
         "Ruler": "标尺",
+        "Clear Rulers": "清空标尺",
         "Click to set start point": "点击设置起点",
         "Edit Custom POIs": "编辑自定义点位",
         "Category:": "分类：",

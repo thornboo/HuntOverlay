@@ -30,8 +30,9 @@ class Panel(QtWidgets.QWidget):
     panelFollowTabChanged = QtCore.Signal(bool)
     forceRefresh = QtCore.Signal()
     languageChanged = QtCore.Signal(str)  # emits language code; applies on restart
-    requestPoiEditor = QtCore.Signal()
+    requestPoiEditor = QtCore.Signal(str)
     requestRuler = QtCore.Signal()
+    requestClearRulers = QtCore.Signal()
     requestOpenDataDir = QtCore.Signal()
 
 
@@ -145,13 +146,27 @@ class Panel(QtWidgets.QWidget):
         tv.addWidget(self.btn_def_colors)
         self.btn_def_colors.clicked.connect(self.resetColors)
 
+        poi_type_row = QtWidgets.QHBoxLayout()
+        poi_type_row.addWidget(QtWidgets.QLabel(tr("POI type:")))
+        self.cmb_poi_type = QtWidgets.QComboBox()
+        for tkey in type_order:
+            if tkey == "possible_xp":
+                continue
+            self.cmb_poi_type.addItem(type_specs[tkey]["label"], tkey)
+        poi_type_row.addWidget(self.cmb_poi_type, 1)
+        tv.addLayout(poi_type_row)
+
         self.btn_edit_pois = QtWidgets.QPushButton(tr("Edit POIs"))
         tv.addWidget(self.btn_edit_pois)
-        self.btn_edit_pois.clicked.connect(self.requestPoiEditor)
+        self.btn_edit_pois.clicked.connect(self._emit_poi_editor_request)
 
         self.btn_ruler = QtWidgets.QPushButton(tr("Ruler"))
         tv.addWidget(self.btn_ruler)
         self.btn_ruler.clicked.connect(self.requestRuler)
+
+        self.btn_clear_rulers = QtWidgets.QPushButton(tr("Clear Rulers"))
+        tv.addWidget(self.btn_clear_rulers)
+        self.btn_clear_rulers.clicked.connect(self.requestClearRulers)
 
         tv.addStretch(1)
         tabs.addTab(types_page, tr("POIs"))
@@ -337,6 +352,10 @@ class Panel(QtWidgets.QWidget):
     def _inc_scale(self):
         self.scale_box.setValue(min(self.scale_box.maximum(), self.scale_box.value() + 0.05))
 
+    def _emit_poi_editor_request(self):
+        category = self.cmb_poi_type.currentData()
+        self.requestPoiEditor.emit(str(category or ""))
+
     def setTypeState(self, tkey: str, enabled: bool, fill_color: QtGui.QColor):
         chk, chip = self.type_widgets[tkey]
         chk.blockSignals(True)
@@ -371,4 +390,3 @@ class Panel(QtWidgets.QWidget):
         entry = self.kb_rows.get(action)
         if entry:
             entry[1].setText(txt)
-

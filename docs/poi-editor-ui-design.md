@@ -1,7 +1,7 @@
-# POI 编辑器 UI — 实现设计 (v1)
+# POI 编辑器 UI — 实现设计
 
 > 前置：纯逻辑层 `user_data.py`（已完成，100% 测试）+ 渲染合并（已完成）。
-> 本文档只设计 Qt UI 实现，待用户真机验证点位对齐后实施。
+> 当前主交互已改为 Overlay 直接连续选点；`PoiEditorDialog` 保留为底层管理对话框/旧路径。
 > 风险提示：Qt 交互效果只能真机验证，实现后需用户确认。
 
 ## 1. 接入点（已核实现有结构）
@@ -17,27 +17,27 @@ class Panel(QtWidgets.QWidget):
 
 新增组件：
 - `widgets/poi_editor.py` — `PoiEditorDialog`（独立对话框）
-- Panel 加「编辑点位」按钮 + `requestPoiEditor = QtCore.Signal()` 信号
-- Overlay 加 `_open_poi_editor` 槽
+- Panel 加「点位类型」下拉 +「编辑点位」按钮，`requestPoiEditor = QtCore.Signal(str)` 发射分类 key
+- Overlay 加 `_start_poi_pick_mode(category)` 槽，直接进入连续地图选点
 
 ## 2. 数据流
 
 ```
-用户点「编辑点位」
-  → Panel.requestPoiEditor 发射
-    → Overlay._open_poi_editor()
-      → 用 self.user_pois 的副本构造 PoiEditorDialog
-      → dialog.exec()
-        用户在对话框里增删点位（操作 user_data 的纯函数，返回新 dict）
-      → 若 accepted:
-          self.user_pois = dialog.result_pois
-          user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
-          self._rebuild_all_caches()   # 已有方法
-          self.update()                # 重绘
+用户选择「点位类型」
+  → 点「编辑点位」
+    → Panel.requestPoiEditor(category) 发射
+      → Overlay._start_poi_pick_mode(category)
+        → Overlay 关闭点击穿透并进入连续 pick mode
+          → 每次左键点击：
+              user_data.add_point(self.user_pois, current_map, category, x, y)
+              user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
+              self._rebuild_all_caches()
+              self.update()
+          → 右键 / Esc 退出 pick mode
 ```
 
-关键：编辑器内部全程操作 `user_data` 的不可变函数返回的 dict，
-**取消时不影响 Overlay 的 self.user_pois**（因为传的是副本）。
+关键：直接选点全程只写 `user_pois.json`，不碰远程 `data.json`。
+`possible_xp` 是派生合集，不作为可新增分类出现在下拉里。
 
 ## 3. PoiEditorDialog 布局
 
@@ -62,15 +62,11 @@ class Panel(QtWidgets.QWidget):
 - 「+」按钮：调 `user_data.add_point`，刷新表格
 - 「删除选中」：调 `user_data.remove_point(选中行索引)`，刷新表格
 
-## 4. 坐标怎么填（v1 用手输，v2 再做拾取）
+## 4. 坐标怎么填
 
-v1：用户手动输入 X/Y（QSpinBox 限定 0–4095）。
-- 简单可靠，无需叠加层交互。
-- 配合「数据更新」说明，高级用户可参照游戏地图估坐标。
-
-v2（留后续）：「从叠加层拾取」——点击叠加层地图位置反推坐标。
-需要叠加层临时进入「拾取模式」（关闭点击穿透、捕获一次点击、反算 u,v→x,y），
-复杂度高，且只能真机验证，故 v1 不做。
+当前主路径为直接拾取：Overlay 临时进入 pick mode，关闭点击穿透，
+把左键点击位置从屏幕坐标反算为 Hunt 4096x4096 地图网格坐标。
+用户可连续左键添加多个点，右键或 Esc 退出。
 
 ## 5. 用户点位的视觉区分（叠加层渲染）
 
@@ -84,8 +80,8 @@ v2（留后续）：「从叠加层拾取」——点击叠加层地图位置反
 | 文件 | 改动 | 风险 |
 |------|------|------|
 | `widgets/poi_editor.py`(新) | PoiEditorDialog | 中(Qt交互真机验证) |
-| `widgets/panel.py` | 加「编辑点位」按钮 + requestPoiEditor 信号 | 低 |
-| `overlay.py` | 加 `_open_poi_editor` 槽 + 连接信号；保存后 rebuild+update | 中 |
+| `widgets/panel.py` | 加「点位类型」下拉 +「编辑点位」按钮 + requestPoiEditor(str) 信号 | 低 |
+| `overlay.py` | 加 `_start_poi_pick_mode` 槽 + 连续选点保存；保留 `_open_poi_editor` 旧路径 | 中 |
 | `overlay.py` paintEvent | (可选)用户点位差异化描边 | 中(视觉需验证) |
 | `tests/` | 编辑器用的纯逻辑已在 user_data 测过；UI 本身难单测 | — |
 

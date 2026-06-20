@@ -98,7 +98,8 @@ def test_missing_images(tmp_path):
     cache = str(tmp_path)
     urls = ["https://i.imgur.com/a.png", "https://i.imgur.com/b.png"]
     # Pre-create the cache file for the first URL.
-    open(images.cache_path(cache, urls[0]), "w").close()
+    with open(images.cache_path(cache, urls[0]), "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\nrest")
     miss = images.missing_images(cache, urls)
     assert miss == ["https://i.imgur.com/b.png"]
 

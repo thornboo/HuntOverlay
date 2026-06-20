@@ -1,7 +1,7 @@
 # 真机验证清单（Windows）
 
 > 本次会话积累了一批只能在 Windows 真机验证的改动（重构 + 功能 + 数据修复）。
-> macOS 侧已验证：179 单元测试全过、整条 import 链 offscreen 成立。
+> macOS 侧已验证：182 单元测试全过、整条 import 链 offscreen 成立。
 > 以下是必须你在 Windows 上确认的项。建议按顺序一次测完。
 
 ## 0. 准备

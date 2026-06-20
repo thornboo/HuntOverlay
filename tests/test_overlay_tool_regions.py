@@ -2,9 +2,10 @@
 
 import importlib
 import sys
+from types import SimpleNamespace
 
 import pytest
-from PySide6 import QtCore
+from PySide6 import QtCore, QtGui
 
 
 def _load_overlay(monkeypatch, tmp_path):
@@ -73,3 +74,61 @@ def test_same_pixel_suppresses_duplicate_mouse_moves(monkeypatch, tmp_path):
         QtCore.QPointF(12.2, 9.9),
         QtCore.QPointF(13.0, 9.1),
     ) is False
+
+
+@pytest.mark.unit
+def test_poll_tool_cursor_updates_pick_from_timer(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    state = SimpleNamespace(
+        visible=True,
+        _pick_mode=True,
+        _ruler_mode=False,
+        cursor=QtCore.QPointF(123, 234),
+        called=None,
+    )
+    state._tool_cursor_pos = lambda: state.cursor
+    state._set_pick_pos = lambda pos: setattr(state, "called", ("pick", pos))
+    state._set_ruler_pos = lambda pos: setattr(state, "called", ("ruler", pos))
+
+    overlay.Overlay._poll_tool_cursor(state)
+
+    mode, pos = state.called
+    assert mode == "pick"
+    assert pos == QtCore.QPointF(123, 234)
+
+
+@pytest.mark.unit
+def test_poll_tool_cursor_updates_ruler_from_timer(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    state = SimpleNamespace(
+        visible=True,
+        _pick_mode=False,
+        _ruler_mode=True,
+        cursor=QtCore.QPointF(321, 432),
+        called=None,
+    )
+    state._tool_cursor_pos = lambda: state.cursor
+    state._set_pick_pos = lambda pos: setattr(state, "called", ("pick", pos))
+    state._set_ruler_pos = lambda pos: setattr(state, "called", ("ruler", pos))
+
+    overlay.Overlay._poll_tool_cursor(state)
+
+    mode, pos = state.called
+    assert mode == "ruler"
+    assert pos == QtCore.QPointF(321, 432)
+
+
+@pytest.mark.unit
+def test_update_region_repaints_immediately(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    calls = []
+
+    class _State:
+        def repaint(self, *args):
+            calls.append(args)
+
+    region = QtGui.QRegion(QtCore.QRect(1, 2, 3, 4))
+    overlay.Overlay._update_region(_State(), region)
+
+    assert len(calls) == 1
+    assert calls[0][0] is region

@@ -400,6 +400,7 @@ class Overlay(QtWidgets.QWidget):
         self.setMouseTracking(True)
         set_mouse_transparent(int(self.winId()), False)  # capture the mouse
         self.update()
+        self._poll_tool_cursor()
 
     def _exit_pick_mode(self):
         self._pick_mode = False
@@ -428,6 +429,7 @@ class Overlay(QtWidgets.QWidget):
         self.setMouseTracking(True)
         set_mouse_transparent(int(self.winId()), False)
         self.update()
+        self._poll_tool_cursor()
 
     def _exit_ruler_mode(self):
         self._ruler_mode = False
@@ -439,17 +441,9 @@ class Overlay(QtWidgets.QWidget):
 
     def mouseMoveEvent(self, e):
         if self._pick_mode:
-            old_pos = self._pick_pos
-            if self._same_pixel(old_pos, e.position()):
-                return
-            self._pick_pos = e.position()
-            self._update_pick_region(old_pos, self._pick_pos)
+            self._set_pick_pos(e.position())
         elif self._ruler_mode:
-            old_pos = self._ruler_pos
-            if self._same_pixel(old_pos, e.position()):
-                return
-            self._ruler_pos = e.position()
-            self._update_ruler_region(old_pos, self._ruler_pos)
+            self._set_ruler_pos(e.position())
         else:
             super().mouseMoveEvent(e)
 
@@ -502,11 +496,43 @@ class Overlay(QtWidgets.QWidget):
             super().keyPressEvent(e)
 
     def _update_region(self, region: QtGui.QRegion):
-        """Request a bounded repaint region, falling back to a full repaint."""
+        """Immediately repaint a bounded tool region.
+
+        Tool overlays track the cursor; queued update() calls can visibly lag
+        on translucent top-level Windows windows.
+        """
         if region is None or region.isEmpty():
-            self.update()
+            self.repaint()
             return
-        self.update(region)
+        self.repaint(region)
+
+    def _tool_cursor_pos(self):
+        return QtCore.QPointF(self.mapFromGlobal(QtGui.QCursor.pos()))
+
+    def _set_pick_pos(self, pos) -> bool:
+        old_pos = self._pick_pos
+        if self._same_pixel(old_pos, pos):
+            return False
+        self._pick_pos = QtCore.QPointF(pos)
+        self._update_pick_region(old_pos, self._pick_pos)
+        return True
+
+    def _set_ruler_pos(self, pos) -> bool:
+        old_pos = self._ruler_pos
+        if self._same_pixel(old_pos, pos):
+            return False
+        self._ruler_pos = QtCore.QPointF(pos)
+        self._update_ruler_region(old_pos, self._ruler_pos)
+        return True
+
+    def _poll_tool_cursor(self):
+        if not self.visible:
+            return
+        pos = self._tool_cursor_pos()
+        if self._pick_mode:
+            self._set_pick_pos(pos)
+        elif self._ruler_mode:
+            self._set_ruler_pos(pos)
 
     def _same_pixel(self, a, b) -> bool:
         if a is None or b is None:
@@ -1247,7 +1273,9 @@ class Overlay(QtWidgets.QWidget):
             elif self._bind_pressed("map_3"): self.switch(MAPS[2])
             elif self._bind_pressed("map_4"): self.switch(MAPS[3])
 
-        if self.visible and not self._pick_mode and not self._ruler_mode:
+        if self.visible and (self._pick_mode or self._ruler_mode):
+            self._poll_tool_cursor()
+        elif self.visible:
             self._update_hover()
         elif self.hover is not None:
             self.hover = None
@@ -1258,8 +1286,8 @@ class Overlay(QtWidgets.QWidget):
         self.p_hide_hovered = hide_now
 
         # Only repaint when something visible actually changed, instead of
-        # forcing 60 fps of full redraws (which made ruler/hover feel laggy).
-        # Pick/ruler modes drive their own repaints from mouse-move events.
+        # forcing 60 fps of full redraws (which made hover feel laggy).
+        # Pick/ruler modes drive small immediate repaints from cursor polling.
         hover_id = id(self.hover.get("pt_ref")) if self.hover else None
         if not self._pick_mode and not self._ruler_mode:
             if self.visible and hover_id != self._last_hover_id:

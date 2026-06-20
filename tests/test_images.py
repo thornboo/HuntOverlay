@@ -45,6 +45,34 @@ def test_cache_filename_distinct_for_distinct_urls():
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(
+    "raw,ok",
+    [
+        (b"\x89PNG\r\n\x1a\nrest", True),
+        (b"\xff\xd8\xffrest", True),
+        (b"GIF89arest", True),
+        (b"RIFF1234WEBPrest", True),
+        (b"<html>blocked</html>", False),
+        (b"", False),
+    ],
+)
+def test_has_supported_image_signature(raw, ok):
+    assert images.has_supported_image_signature(raw) is ok
+
+
+@pytest.mark.unit
+def test_cached_image_valid_checks_signature(tmp_path):
+    good = tmp_path / "good.png"
+    bad = tmp_path / "bad.png"
+    good.write_bytes(b"\x89PNG\r\n\x1a\nrest")
+    bad.write_text("<html>blocked</html>", encoding="utf-8")
+
+    assert images.cached_image_valid(str(good)) is True
+    assert images.cached_image_valid(str(bad)) is False
+    assert images.cached_image_valid(str(tmp_path / "missing.png")) is False
+
+
+@pytest.mark.unit
 def test_collect_image_urls_dedupes_and_filters():
     data = [
         {"n": "DeSalle", "armories": [

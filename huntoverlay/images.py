@@ -20,6 +20,35 @@ ALLOWED_IMAGE_HOSTS = {"i.imgur.com", "imgur.com"}
 _ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 
+def has_supported_image_signature(raw: bytes) -> bool:
+    """True when bytes look like a supported image payload.
+
+    This deliberately checks file signatures instead of trusting HTTP status
+    or URL extensions, because captive portals/proxies can return small HTML
+    pages for image URLs.
+    """
+    if not raw:
+        return False
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    if raw.startswith(b"\xff\xd8\xff"):
+        return True
+    if raw.startswith((b"GIF87a", b"GIF89a")):
+        return True
+    if len(raw) >= 12 and raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+        return True
+    return False
+
+
+def cached_image_valid(path: str) -> bool:
+    """True when a cached file exists and starts with a supported signature."""
+    try:
+        with open(path, "rb") as f:
+            return has_supported_image_signature(f.read(16))
+    except OSError:
+        return False
+
+
 def is_allowed_image_url(url: str) -> bool:
     """True if the URL is http(s) and on an allowed image host."""
     try:

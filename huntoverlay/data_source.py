@@ -15,6 +15,7 @@ import os
 import urllib.request
 from datetime import datetime, timedelta
 
+from . import images as _images
 from .paths import load_json, save_json
 
 # Default cadence for the legacy "needs update?" check (6h): keeps POI data
@@ -69,6 +70,7 @@ def fetch_image(url: str, dst: str) -> bool:
     cache entry. A normal User-Agent is sent so imgur does not reject the
     default urllib agent.
     """
+    tmp = dst + ".part"
     try:
         req = urllib.request.Request(url, headers={
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -79,12 +81,18 @@ def fetch_image(url: str, dst: str) -> bool:
             raw = r.read(_MAX_IMAGE_BYTES + 1)
         if not raw or len(raw) > _MAX_IMAGE_BYTES:
             return False
-        tmp = dst + ".part"
+        if not _images.has_supported_image_signature(raw):
+            return False
         with open(tmp, "wb") as f:
             f.write(raw)
         os.replace(tmp, dst)
         return True
     except Exception:
+        try:
+            if os.path.isfile(tmp):
+                os.remove(tmp)
+        except OSError:
+            pass
         return False
 
 

@@ -10,6 +10,7 @@ config/meta helpers that now take explicit paths).
 import json
 import os
 import threading
+import time
 import traceback
 from datetime import datetime
 
@@ -197,7 +198,9 @@ class Overlay(QtWidgets.QWidget):
 
         # Hover state is computed each tick when visible.
         self.hover = None
-        self.hover_radius = 10
+        # Hover needs to be forgiving: the overlay reads the system cursor, not
+        # the game reticle, so a tiny hit box makes image previews feel dead.
+        self.hover_radius = 18
         # Last hovered point identity, to repaint only when it changes.
         self._last_hover_id = None
 
@@ -220,6 +223,9 @@ class Overlay(QtWidgets.QWidget):
         self._hover_pm_cache = {}
         # URLs currently being downloaded on demand (de-dupe repeated hovers).
         self._img_inflight = set()
+        # url -> "loading" | "ready" | "failed"; used for visible feedback.
+        self._img_status = {}
+        self._img_failed_at = {}
 
         # Cache computed point lists per map to avoid rebuilding every frame.
         self.cache = {}
@@ -433,20 +439,22 @@ class Overlay(QtWidgets.QWidget):
             self._pick_pos = e.position()
             self.update()
         elif self._ruler_mode:
+            old_pos = self._ruler_pos
             self._ruler_pos = e.position()
-            self.update()
+            self._update_ruler_region(old_pos, self._ruler_pos)
         else:
             super().mouseMoveEvent(e)
 
     def mousePressEvent(self, e):
         if self._ruler_mode:
             if e.button() == QtCore.Qt.LeftButton and self.rect:
+                old_dirty = self._ruler_dirty_rect(e.position())
                 gx, gy = self._screen_to_grid(e.position())
                 if self._ruler_a is None:
                     self._ruler_a = (gx, gy)        # first click: anchor
                 else:
                     self._ruler_a = None            # third click: restart
-                self.update()
+                self._update_rect(old_dirty.united(self._ruler_dirty_rect(e.position())))
             else:
                 self._exit_ruler_mode()             # right-click exits
             return
@@ -484,6 +492,39 @@ class Overlay(QtWidgets.QWidget):
         else:
             super().keyPressEvent(e)
 
+    def _update_rect(self, rect: QtCore.QRect):
+        """Request a bounded repaint, falling back to a full repaint if empty."""
+        if rect.isNull() or rect.isEmpty():
+            self.update()
+            return
+        self.update(rect)
+
+    def _ruler_dirty_rect(self, pos) -> QtCore.QRect:
+        """Widget-local region affected by the ruler line, cursor dot, and label."""
+        if pos is None:
+            return QtCore.QRect()
+
+        x, y = int(pos.x()), int(pos.y())
+        dirty = QtCore.QRect(x - 22, y - 22, 280, 96)
+
+        if self._ruler_a is not None and self.rect:
+            ax, ay = self._ruler_a
+            au, av = rotate90cw_norm(ax, ay)
+            apx = int(self.rect.left() + au * self.rect.width())
+            apy = int(self.rect.top() + av * self.rect.height())
+            line = QtCore.QRect(
+                QtCore.QPoint(min(apx, x), min(apy, y)),
+                QtCore.QPoint(max(apx, x), max(apy, y)),
+            ).normalized().adjusted(-16, -16, 16, 16)
+            dirty = dirty.united(line)
+
+        bounds = QtCore.QRect(0, 0, max(1, self.width()), max(1, self.height()))
+        return dirty.adjusted(-8, -8, 8, 8).intersected(bounds)
+
+    def _update_ruler_region(self, old_pos, new_pos):
+        dirty = self._ruler_dirty_rect(old_pos).united(self._ruler_dirty_rect(new_pos))
+        self._update_rect(dirty)
+
     def _screen_to_grid(self, pos):
         """Map a cursor position (overlay-local) inside self.rect back to a
         0-4095 grid coordinate via the inverse of the render transform."""
@@ -494,30 +535,68 @@ class Overlay(QtWidgets.QWidget):
     def _hover_pixmap(self, urls):
         """Return a scaled QPixmap for the first cached image in urls, or None.
 
-        Reads from the local image cache only (never downloads here). Decoded
-        pixmaps are memoized by cache path so paintEvent does not hit the disk
-        every frame. Missing/unreadable files yield None.
+        Missing images trigger an on-demand download. Bad cache files are
+        removed so a later hover can retry instead of being permanently stuck.
         """
         if not urls:
             return None
-        url = urls[0]
-        path = _images.cache_path(IMG_CACHE_DIR, url)
-        if not os.path.isfile(path):
-            # Not cached yet: kick off an on-demand download (method B); it
-            # repaints via imageReady when done. Return None for now.
+        for url in urls:
+            if not _images.is_allowed_image_url(url):
+                self._img_status[url] = "failed"
+                continue
+
+            path = _images.cache_path(IMG_CACHE_DIR, url)
+            if os.path.isfile(path):
+                if not _images.cached_image_valid(path):
+                    self._remove_bad_image_cache(path, url)
+                    self._img_failed_at.pop(url, None)
+                    self._img_status.pop(url, None)
+                    self._request_image_download(url)
+                    return None
+
+                if path in self._hover_pm_cache:
+                    return self._hover_pm_cache[path]
+
+                pm = QtGui.QPixmap(path)
+                if pm.isNull():
+                    self._remove_bad_image_cache(path, url)
+                    self._img_status[url] = "failed"
+                    self._img_failed_at[url] = time.monotonic()
+                    continue
+
+                # Cap the preview size so it never dominates the screen.
+                pm = pm.scaled(280, 280, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+                self._hover_pm_cache[path] = pm
+                self._img_status[url] = "ready"
+                return pm
+
             self._request_image_download(url)
             return None
-        cached = self._hover_pm_cache.get(path)
-        if cached is not None:
-            return cached
-        pm = QtGui.QPixmap(path)
-        if pm.isNull():
-            self._hover_pm_cache[path] = None
-            return None
-        # Cap the preview size so it never dominates the screen.
-        pm = pm.scaled(280, 280, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self._hover_pm_cache[path] = pm
-        return pm
+
+        return None
+
+    def _remove_bad_image_cache(self, path: str, url: str):
+        self._hover_pm_cache.pop(path, None)
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        self._img_status[url] = "failed"
+        self._img_failed_at[url] = time.monotonic()
+
+    def _hover_image_message(self, urls):
+        if not urls:
+            return ""
+        saw_failed = False
+        for url in urls:
+            state = self._img_status.get(url, "")
+            if state == "loading":
+                return tr("Loading image...")
+            if state == "failed":
+                saw_failed = True
+        if saw_failed:
+            return tr("Image unavailable")
+        return ""
 
 
 
@@ -560,19 +639,37 @@ class Overlay(QtWidgets.QWidget):
         not queue the same URL twice; repaints when done so the image appears.
         """
         if not _images.is_allowed_image_url(url):
+            self._img_status[url] = "failed"
             return
         path = _images.cache_path(IMG_CACHE_DIR, url)
-        if os.path.isfile(path) or url in self._img_inflight:
+        if os.path.isfile(path) and _images.cached_image_valid(path):
+            self._img_status[url] = "ready"
             return
+        if url in self._img_inflight:
+            self._img_status[url] = "loading"
+            return
+
+        failed_at = self._img_failed_at.get(url, 0.0)
+        if failed_at and time.monotonic() - failed_at < 30.0:
+            return
+
         self._img_inflight.add(url)
+        self._img_status[url] = "loading"
 
         def worker():
+            ok = False
             try:
                 os.makedirs(IMG_CACHE_DIR, exist_ok=True)
-                _ds.fetch_image(url, path)
+                ok = _ds.fetch_image(url, path)
             except Exception:
                 pass
             finally:
+                if ok and os.path.isfile(path) and _images.cached_image_valid(path):
+                    self._img_status[url] = "ready"
+                    self._img_failed_at.pop(url, None)
+                else:
+                    self._img_status[url] = "failed"
+                    self._img_failed_at[url] = time.monotonic()
                 self._img_inflight.discard(url)
                 # Repaint on the main thread so the new image shows up.
                 self.imageReady.emit()
@@ -1081,8 +1178,10 @@ class Overlay(QtWidgets.QWidget):
             elif self._bind_pressed("map_3"): self.switch(MAPS[2])
             elif self._bind_pressed("map_4"): self.switch(MAPS[3])
 
-        if self.visible:
+        if self.visible and not self._pick_mode and not self._ruler_mode:
             self._update_hover()
+        elif self.hover is not None:
+            self.hover = None
 
         hide_now = self._bind_pressed("hide_hovered")
         if hide_now and not self.p_hide_hovered:
@@ -1125,7 +1224,7 @@ class Overlay(QtWidgets.QWidget):
         self._save()
         self.panel.setKeybindLabel(action, self._bind_label(action))
 
-    def paintEvent(self, _):
+    def paintEvent(self, ev):
         if not (self.master and self.visible and self.rect):
             return
 
@@ -1133,6 +1232,8 @@ class Overlay(QtWidgets.QWidget):
         p.setRenderHint(QtGui.QPainter.Antialiasing)
 
         pts_by_type = self.cache.get(self.prof, {})
+        dirty = ev.rect().adjusted(-48, -48, 48, 48) if ev is not None else \
+            QtCore.QRect(0, 0, max(1, self.width()), max(1, self.height()))
 
         for tkey in self.type_order:
             if not self.types.get(tkey, {}).get("enabled", True):
@@ -1152,11 +1253,18 @@ class Overlay(QtWidgets.QWidget):
             for pt in pts_by_type.get(tkey, []):
                 if self._is_hidden(tkey, pt):
                     continue
+                cx = self.rect.left() + pt["u"] * self.rect.width()
+                cy = self.rect.top() + pt["v"] * self.rect.height()
+                point_rect = QtCore.QRect(
+                    int(cx - scaled - 3),
+                    int(cy - scaled - 3),
+                    int((scaled + 3) * 2),
+                    int((scaled + 3) * 2),
+                )
+                if not dirty.intersects(point_rect):
+                    continue
                 p.drawEllipse(
-                    QtCore.QPointF(
-                        self.rect.left() + pt["u"] * self.rect.width(),
-                        self.rect.top() + pt["v"] * self.rect.height()
-                    ),
+                    QtCore.QPointF(cx, cy),
                     scaled, scaled
                 )
 
@@ -1238,7 +1346,7 @@ class Overlay(QtWidgets.QWidget):
 
         # Hover tooltip: show the description (and image count) of the point
         # under the cursor, if it has one. Skipped while picking.
-        if not self._pick_mode and self.hover is not None:
+        if not self._pick_mode and not self._ruler_mode and self.hover is not None:
             raw = self.hover.get("pt_ref", {}).get("raw", {})
             desc = str(raw.get("d", "")).strip() if isinstance(raw, dict) else ""
             imgs = raw.get("u", []) if isinstance(raw, dict) else []
@@ -1273,5 +1381,19 @@ class Overlay(QtWidgets.QWidget):
                 p.setBrush(QtGui.QColor(0, 0, 0, 200))
                 p.drawRoundedRect(QtCore.QRectF(ix - 3, iy - 3, iw + 6, ih + 6), 5, 5)
                 p.drawPixmap(int(ix), int(iy), pm)
+            else:
+                msg = self._hover_image_message(imgs)
+                if msg:
+                    sfm = QtGui.QFontMetrics(p.font())
+                    sw = sfm.horizontalAdvance(msg)
+                    sr = QtCore.QRectF(hx + 14, bubble_top - sfm.height() - 8,
+                                       sw + 14, sfm.height() + 8)
+                    p.setPen(QtCore.Qt.NoPen)
+                    p.setBrush(QtGui.QColor(0, 0, 0, 190))
+                    p.drawRoundedRect(sr, 5, 5)
+                    color = QtGui.QColor(144, 160, 255) if "..." in msg else QtGui.QColor(255, 180, 120)
+                    p.setPen(QtGui.QPen(color, 1))
+                    p.drawText(sr.adjusted(7, 4, -7, -4),
+                               QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, msg)
 
         p.end()

@@ -6,12 +6,27 @@ from datetime import datetime, timedelta
 import pytest
 
 from huntoverlay.data_source import (
+    fetch_image,
     load_update_meta,
     save_update_meta,
     needs_data_update,
     last_update_status,
     UPDATE_INTERVAL,
 )
+
+
+class _FakeResponse:
+    def __init__(self, raw: bytes):
+        self._raw = raw
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def read(self, _n=-1):
+        return self._raw
 
 
 @pytest.mark.unit
@@ -82,3 +97,28 @@ def test_last_update_status():
     status, when = last_update_status("2026-06-15T14:30:00")
     assert status == "updated"
     assert when == "2026-06-15 14:30"
+
+
+@pytest.mark.unit
+def test_fetch_image_writes_supported_image(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "huntoverlay.data_source.urllib.request.urlopen",
+        lambda *_args, **_kwargs: _FakeResponse(b"\x89PNG\r\n\x1a\nrest"),
+    )
+
+    dst = tmp_path / "img.png"
+    assert fetch_image("https://i.imgur.com/a.png", str(dst)) is True
+    assert dst.read_bytes().startswith(b"\x89PNG")
+
+
+@pytest.mark.unit
+def test_fetch_image_rejects_html_response(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "huntoverlay.data_source.urllib.request.urlopen",
+        lambda *_args, **_kwargs: _FakeResponse(b"<html>blocked</html>"),
+    )
+
+    dst = tmp_path / "img.png"
+    assert fetch_image("https://i.imgur.com/a.png", str(dst)) is False
+    assert not dst.exists()
+    assert not (tmp_path / "img.png.part").exists()

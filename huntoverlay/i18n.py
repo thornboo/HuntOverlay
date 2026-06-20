@@ -153,6 +153,8 @@ _UI = {
         "Data: updating...": "数据：正在更新...",
         "Updating map data...": "正在更新地图数据...",
         "Downloading images": "正在下载图片",
+        "Loading image...": "正在加载图片...",
+        "Image unavailable": "图片不可用",
         # Overlay — runtime errors / map title
         "Error": "错误",
         "HuntOverlay is already running.": "HuntOverlay 已在运行。",

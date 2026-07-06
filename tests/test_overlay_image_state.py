@@ -72,7 +72,7 @@ def test_image_prefetch_finish_clears_queue_and_runs_pending(monkeypatch, tmp_pa
         _img_prefetch_queued=set(urls),
         _image_prefetch_running=True,
         _image_prefetch_pending=True,
-        _start_image_prefetch=lambda game_data: calls.append(game_data),
+        _start_image_prefetch=lambda: calls.append("started"),
     )
 
     overlay.Overlay._on_image_prefetch_finished(state, urls)
@@ -80,7 +80,84 @@ def test_image_prefetch_finish_clears_queue_and_runs_pending(monkeypatch, tmp_pa
     assert state._img_prefetch_queued == set()
     assert state._image_prefetch_running is False
     assert state._image_prefetch_pending is False
-    assert calls == [state.game_data]
+    assert calls == ["started"]
+
+
+@pytest.mark.unit
+def test_collect_prefetch_urls_uses_render_cache_and_game_data(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    state = SimpleNamespace(
+        cache={
+            "DeSalle": {
+                "armories": [
+                    {"raw": {"u": ["https://i.imgur.com/user.png", "https://evil.com/x.png"]}},
+                    {"raw": {"u": ["https://i.imgur.com/duplicate.jpg"]}},
+                ],
+                "possible_xp": [
+                    {"raw": {"u": ["https://i.imgur.com/user.png"]}},
+                ],
+            },
+        },
+    )
+    game_data = [
+        {"n": "Stillwater Bayou", "spawns": [
+            {"c": [1, 2], "u": ["https://i.imgur.com/official.webp"]},
+            {"c": [3, 4], "u": ["https://i.imgur.com/duplicate.jpg"]},
+        ]},
+    ]
+
+    urls = overlay.Overlay._collect_prefetch_image_urls(state, game_data)
+
+    assert urls == [
+        "https://i.imgur.com/user.png",
+        "https://i.imgur.com/duplicate.jpg",
+        "https://i.imgur.com/official.webp",
+    ]
+
+
+@pytest.mark.unit
+def test_image_prefetch_needed_until_preview_exists(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    monkeypatch.setattr(overlay, "IMG_CACHE_DIR", str(cache_dir))
+
+    state = SimpleNamespace()
+    state._image_cache_missing = lambda url: overlay.Overlay._image_cache_missing(state, url)
+    url = "https://i.imgur.com/a.png"
+
+    assert overlay.Overlay._image_prefetch_needed(state, url) is True
+
+    Path(overlay._images.cache_path(str(cache_dir), url)).write_bytes(b"\x89PNG\r\n\x1a\nrest")
+    assert overlay.Overlay._image_prefetch_needed(state, url) is True
+
+    Path(overlay._images.preview_cache_path(str(cache_dir), url)).write_bytes(b"\x89PNG\r\n\x1a\nrest")
+    assert overlay.Overlay._image_prefetch_needed(state, url) is False
+
+
+@pytest.mark.unit
+def test_download_finished_primes_current_hover_before_repaint(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    calls = []
+
+    class _Ready:
+        def emit(self):
+            calls.append(("emit",))
+
+    state = SimpleNamespace(
+        imageReady=_Ready(),
+        _finish_image_download=lambda url, ok: calls.append(("finish", url, ok)),
+        _hover_uses_image_url=lambda url: True,
+        _prime_hover_pixmap=lambda url: calls.append(("prime", url)),
+    )
+
+    overlay.Overlay._on_image_download_finished(state, "https://i.imgur.com/a.png", True)
+
+    assert calls == [
+        ("finish", "https://i.imgur.com/a.png", True),
+        ("prime", "https://i.imgur.com/a.png"),
+        ("emit",),
+    ]
 
 
 @pytest.mark.unit

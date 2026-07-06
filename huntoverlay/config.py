@@ -70,6 +70,7 @@ def build_default_config():
             "minimize_to_tray": False,
             "hold_tab_to_show": False,
             "block_shift_tab": True,
+            "show_user_pois": True,
             "keybinds": default_keybinds(),
             "types": {},
             "hidden": {"possible_xp": list(constants.DEFAULT_HIDDEN_POSSIBLE_XP)},

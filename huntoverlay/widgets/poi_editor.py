@@ -84,8 +84,8 @@ class PoiEditorDialog(QtWidgets.QDialog):
         root.addWidget(hint)
 
         # Table of current user points.
-        self.table = QtWidgets.QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["X", "Y", tr("Description"), tr("Images")])
+        self.table = QtWidgets.QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels([tr("Visible"), "X", "Y", tr("Description"), tr("Images")])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -120,6 +120,9 @@ class PoiEditorDialog(QtWidgets.QDialog):
         btn_del = QtWidgets.QPushButton(tr("Delete Selected"))
         btn_del.clicked.connect(self._delete_selected)
         bot.addWidget(btn_del)
+        btn_clear = QtWidgets.QPushButton(tr("Clear Current"))
+        btn_clear.clicked.connect(self._clear_current)
+        bot.addWidget(btn_clear)
         self.btn_undo = QtWidgets.QPushButton(tr("Undo"))
         self.btn_undo.clicked.connect(self._undo)
         self.btn_undo.setEnabled(False)
@@ -138,6 +141,7 @@ class PoiEditorDialog(QtWidgets.QDialog):
 
         self.cmb_map.currentIndexChanged.connect(self._refresh_table)
         self.cmb_cat.currentIndexChanged.connect(self._refresh_table)
+        self.table.itemChanged.connect(self._table_item_changed)
 
         # Restore context after returning from a map pick.
         if init_map:
@@ -170,19 +174,43 @@ class PoiEditorDialog(QtWidgets.QDialog):
 
     def _refresh_table(self):
         pts = user_data.get_points(self.result_pois, self._cur_map(), self._cur_cat())
+        self.table.blockSignals(True)
         self.table.setRowCount(len(pts))
         for r, pt in enumerate(pts):
             c = pt.get("c", [0, 0])
             x = c[0] if len(c) > 0 else 0
             y = c[1] if len(c) > 1 else 0
-            self.table.setItem(r, 0, QtWidgets.QTableWidgetItem(str(x)))
-            self.table.setItem(r, 1, QtWidgets.QTableWidgetItem(str(y)))
-            self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(str(pt.get("d", ""))))
+            visible = QtWidgets.QTableWidgetItem("")
+            visible.setFlags(
+                QtCore.Qt.ItemIsEnabled |
+                QtCore.Qt.ItemIsSelectable |
+                QtCore.Qt.ItemIsUserCheckable
+            )
+            visible.setCheckState(
+                QtCore.Qt.Checked if user_data.point_visible(pt) else QtCore.Qt.Unchecked
+            )
+            self.table.setItem(r, 0, visible)
+            self.table.setItem(r, 1, QtWidgets.QTableWidgetItem(str(x)))
+            self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(str(y)))
+            self.table.setItem(r, 3, QtWidgets.QTableWidgetItem(str(pt.get("d", ""))))
             imgs = pt.get("u", [])
             img_cell = QtWidgets.QTableWidgetItem(str(len(imgs)) if imgs else "")
             if imgs:
                 img_cell.setToolTip("\n".join(imgs))
-            self.table.setItem(r, 3, img_cell)
+            self.table.setItem(r, 4, img_cell)
+        self.table.blockSignals(False)
+
+    def _table_item_changed(self, item):
+        if item.column() != 0:
+            return
+        self._push_undo()
+        self.result_pois = user_data.set_point_visible(
+            self.result_pois,
+            self._cur_map(),
+            self._cur_cat(),
+            item.row(),
+            item.checkState() == QtCore.Qt.Checked,
+        )
 
     def _add_point(self):
         self._push_undo()
@@ -210,6 +238,26 @@ class PoiEditorDialog(QtWidgets.QDialog):
         for r in rows:
             self.result_pois = user_data.remove_point(
                 self.result_pois, self._cur_map(), self._cur_cat(), r)
+        self._refresh_table()
+
+    def _clear_current(self):
+        if not user_data.get_points(self.result_pois, self._cur_map(), self._cur_cat()):
+            return
+        answer = QtWidgets.QMessageBox.question(
+            self,
+            tr("Clear Current"),
+            tr("Clear all custom points in this map/category?"),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+        if answer != QtWidgets.QMessageBox.Yes:
+            return
+        self._push_undo()
+        self.result_pois = user_data.clear_points(
+            self.result_pois,
+            self._cur_map(),
+            self._cur_cat(),
+        )
         self._refresh_table()
 
     def _push_undo(self):
@@ -303,5 +351,3 @@ class _TextDialog(QtWidgets.QDialog):
 
     def _copy(self):
         QtWidgets.QApplication.clipboard().setText(self.edit.toPlainText())
-
-

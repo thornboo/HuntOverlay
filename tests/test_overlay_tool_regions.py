@@ -150,6 +150,78 @@ def test_start_poi_pick_mode_uses_real_category(monkeypatch, tmp_path):
 
 
 @pytest.mark.unit
+def test_set_show_user_pois_rebuilds_cache_and_prefetches(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    calls = []
+    state = SimpleNamespace(
+        show_user_pois=False,
+        _rebuild_all_caches=lambda: calls.append("rebuild"),
+        _start_image_prefetch=lambda: calls.append("prefetch"),
+        _save=lambda: calls.append("save"),
+        update=lambda: calls.append("update"),
+    )
+
+    overlay.Overlay._set_show_user_pois(state, True)
+
+    assert state.show_user_pois is True
+    assert calls == ["rebuild", "prefetch", "save", "update"]
+
+
+@pytest.mark.unit
+def test_build_points_respects_show_user_pois(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        overlay,
+        "get_map_block",
+        lambda game_data, fmt, map_name: {"n": map_name},
+    )
+
+    def category_points(_block, _fmt, category):
+        if category == "armories":
+            return [{"c": [10, 20]}]
+        return []
+
+    monkeypatch.setattr(overlay, "get_category_list", category_points)
+    user_pois = overlay.user_data.add_point(
+        overlay.user_data.empty_user_pois(),
+        "DeSalle",
+        "armories",
+        30,
+        40,
+    )
+    user_pois = overlay.user_data.add_point(
+        user_pois,
+        "DeSalle",
+        "armories",
+        50,
+        60,
+    )
+    user_pois = overlay.user_data.set_point_visible(
+        user_pois,
+        "DeSalle",
+        "armories",
+        1,
+        False,
+    )
+    state = SimpleNamespace(
+        game_data=[],
+        fmt="legacy",
+        type_order=["possible_xp", "armories", "towers", "big_towers"],
+        user_pois=user_pois,
+        show_user_pois=False,
+    )
+
+    hidden = overlay.Overlay._build_points_for_map(state, "DeSalle")
+    state.show_user_pois = True
+    visible = overlay.Overlay._build_points_for_map(state, "DeSalle")
+
+    assert len(hidden["armories"]) == 1
+    assert len(visible["armories"]) == 2
+    assert visible["armories"][1]["raw"]["_user"] is True
+    assert visible["armories"][1]["x"] == 30.0
+
+
+@pytest.mark.unit
 def test_clear_rulers_removes_all_maps(monkeypatch, tmp_path):
     overlay = _load_overlay(monkeypatch, tmp_path)
     calls = []

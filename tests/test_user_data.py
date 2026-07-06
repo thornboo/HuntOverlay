@@ -9,7 +9,10 @@ from huntoverlay.user_data import (
     coord_valid,
     get_points,
     add_point,
+    point_visible,
+    set_point_visible,
     remove_point,
+    clear_points,
     merge_into_points,
     load_user_pois,
     save_user_pois,
@@ -90,6 +93,27 @@ def test_add_point_rejects_out_of_range():
 
 
 @pytest.mark.unit
+def test_user_point_visibility_defaults_to_visible():
+    d = add_point(empty_user_pois(), "DeSalle", "armories", 1, 1)
+    pt = get_points(d, "DeSalle", "armories")[0]
+
+    assert point_visible(pt) is True
+
+
+@pytest.mark.unit
+def test_set_point_visible_is_immutable_and_omits_true_default():
+    d = add_point(empty_user_pois(), "DeSalle", "armories", 1, 1)
+
+    hidden = set_point_visible(d, "DeSalle", "armories", 0, False)
+    shown = set_point_visible(hidden, "DeSalle", "armories", 0, True)
+
+    assert point_visible(get_points(hidden, "DeSalle", "armories")[0]) is False
+    assert get_points(hidden, "DeSalle", "armories")[0]["visible"] is False
+    assert "visible" not in get_points(shown, "DeSalle", "armories")[0]
+    assert "visible" not in get_points(d, "DeSalle", "armories")[0]
+
+
+@pytest.mark.unit
 def test_add_multiple_points_accumulate():
     d = empty_user_pois()
     d = add_point(d, "DeSalle", "armories", 1, 1)
@@ -114,6 +138,29 @@ def test_remove_point_out_of_range_noop():
     d = add_point(empty_user_pois(), "DeSalle", "armories", 1, 1)
     new = remove_point(d, "DeSalle", "armories", 99)
     assert len(get_points(new, "DeSalle", "armories")) == 1
+
+
+@pytest.mark.unit
+def test_clear_points_removes_current_map_category_only():
+    d = empty_user_pois()
+    d = add_point(d, "DeSalle", "armories", 1, 1)
+    d = add_point(d, "DeSalle", "spawns", 2, 2)
+    d = add_point(d, "Lawson Delta", "armories", 3, 3)
+
+    new = clear_points(d, "DeSalle", "armories")
+
+    assert get_points(new, "DeSalle", "armories") == []
+    assert len(get_points(new, "DeSalle", "spawns")) == 1
+    assert len(get_points(new, "Lawson Delta", "armories")) == 1
+    assert len(get_points(d, "DeSalle", "armories")) == 1
+
+
+@pytest.mark.unit
+def test_clear_points_without_scope_removes_all_user_points():
+    d = add_point(empty_user_pois(), "DeSalle", "armories", 1, 1)
+    d = add_point(d, "Lawson Delta", "spawns", 2, 2)
+
+    assert clear_points(d) == empty_user_pois()
 
 
 @pytest.mark.unit

@@ -75,6 +75,26 @@ def add_point(data: dict, map_name: str, category: str, x, y, desc: str = "",
     return result
 
 
+def point_visible(point: dict) -> bool:
+    """User points are visible unless explicitly stored as visible=false."""
+    if not isinstance(point, dict):
+        return True
+    return bool(point.get("visible", True))
+
+
+def set_point_visible(data: dict, map_name: str, category: str, index: int,
+                      visible: bool) -> dict:
+    """Return a NEW data dict with one user point visibility updated."""
+    result = copy.deepcopy(data) if isinstance(data, dict) else empty_user_pois()
+    points = result.get("maps", {}).get(map_name, {}).get(category, [])
+    if 0 <= index < len(points) and isinstance(points[index], dict):
+        if visible:
+            points[index].pop("visible", None)
+        else:
+            points[index]["visible"] = False
+    return result
+
+
 def remove_point(data: dict, map_name: str, category: str, index: int) -> dict:
     """Return a NEW data dict with the point at index removed. Out-of-range
     index is a no-op (returns an unchanged copy)."""
@@ -82,6 +102,32 @@ def remove_point(data: dict, map_name: str, category: str, index: int) -> dict:
     points = result.get("maps", {}).get(map_name, {}).get(category, [])
     if 0 <= index < len(points):
         del points[index]
+    return result
+
+
+def clear_points(data: dict, map_name: str = "", category: str = "") -> dict:
+    """Return a NEW data dict with matching user points removed.
+
+    With both map_name and category set, only that visible editor list is
+    cleared. With map_name set and category empty, the whole map is cleared.
+    With both empty, every user-authored point is cleared.
+    """
+    result = copy.deepcopy(data) if isinstance(data, dict) else empty_user_pois()
+    maps = result.setdefault("maps", {})
+    if not map_name:
+        maps.clear()
+        return result
+
+    cats = maps.get(map_name)
+    if not isinstance(cats, dict):
+        return result
+    if not category:
+        maps.pop(map_name, None)
+        return result
+
+    cats.pop(category, None)
+    if not cats:
+        maps.pop(map_name, None)
     return result
 
 

@@ -31,12 +31,14 @@ class Panel(QtWidgets.QWidget):
     forceRefresh = QtCore.Signal()
     languageChanged = QtCore.Signal(str)  # emits language code; applies on restart
     requestPoiEditor = QtCore.Signal(str)
+    requestPoiPick = QtCore.Signal(str)
+    userPoisToggled = QtCore.Signal(bool)
     requestRuler = QtCore.Signal()
     requestClearRulers = QtCore.Signal()
     requestOpenDataDir = QtCore.Signal()
 
 
-    def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, start_panel_follow_tab: bool = False, p=None):
+    def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, start_panel_follow_tab: bool = False, start_show_user_pois: bool = True, p=None):
         super().__init__(p, QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
         self.setWindowTitle(APP_TITLE)
         self.setFixedWidth(360)
@@ -156,9 +158,20 @@ class Panel(QtWidgets.QWidget):
         poi_type_row.addWidget(self.cmb_poi_type, 1)
         tv.addLayout(poi_type_row)
 
-        self.btn_edit_pois = QtWidgets.QPushButton(tr("Edit POIs"))
-        tv.addWidget(self.btn_edit_pois)
-        self.btn_edit_pois.clicked.connect(self._emit_poi_editor_request)
+        self.chk_user_pois = QtWidgets.QCheckBox(tr("Show custom POIs"))
+        self.chk_user_pois.setChecked(bool(start_show_user_pois))
+        tv.addWidget(self.chk_user_pois)
+        self.chk_user_pois.toggled.connect(lambda b: self.userPoisToggled.emit(bool(b)))
+
+        poi_btn_row = QtWidgets.QHBoxLayout()
+        poi_btn_row.setSpacing(6)
+        self.btn_add_poi = QtWidgets.QPushButton(tr("Add POI"))
+        self.btn_manage_pois = QtWidgets.QPushButton(tr("Manage POIs"))
+        self.btn_add_poi.clicked.connect(self._emit_poi_pick_request)
+        self.btn_manage_pois.clicked.connect(self._emit_poi_editor_request)
+        poi_btn_row.addWidget(self.btn_add_poi)
+        poi_btn_row.addWidget(self.btn_manage_pois)
+        tv.addLayout(poi_btn_row)
 
         self.btn_ruler = QtWidgets.QPushButton(tr("Ruler"))
         tv.addWidget(self.btn_ruler)
@@ -355,6 +368,10 @@ class Panel(QtWidgets.QWidget):
     def _emit_poi_editor_request(self):
         category = self.cmb_poi_type.currentData()
         self.requestPoiEditor.emit(str(category or ""))
+
+    def _emit_poi_pick_request(self):
+        category = self.cmb_poi_type.currentData()
+        self.requestPoiPick.emit(str(category or ""))
 
     def setTypeState(self, tkey: str, enabled: bool, fill_color: QtGui.QColor):
         chk, chip = self.type_widgets[tkey]

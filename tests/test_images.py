@@ -39,6 +39,14 @@ def test_cache_filename_unknown_ext():
 
 
 @pytest.mark.unit
+def test_preview_cache_filename_is_deterministic_png():
+    a = images.preview_cache_filename("https://i.imgur.com/abc.png")
+    b = images.preview_cache_filename("https://i.imgur.com/abc.png")
+    assert a == b
+    assert a.endswith(".preview.png")
+
+
+@pytest.mark.unit
 def test_cache_filename_distinct_for_distinct_urls():
     assert images.cache_filename("https://i.imgur.com/a.png") != \
         images.cache_filename("https://i.imgur.com/b.png")

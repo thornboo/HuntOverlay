@@ -21,9 +21,10 @@ def test_build_default_config_shape():
     assert cfg["version"] == CONFIG_VERSION
     assert set(cfg["profiles"]) == set(MAPS)
     s = cfg["settings"]
-    for key in ("selected_map", "global_scale", "keybinds", "types", "hidden"):
+    for key in ("selected_map", "global_scale", "show_user_pois", "keybinds", "types", "hidden"):
         assert key in s
     assert s["selected_map"] == MAPS[0]
+    assert s["show_user_pois"] is True
 
 
 @pytest.mark.unit

@@ -70,9 +70,20 @@ def cache_filename(url: str) -> str:
     return f"{h}{ext}"
 
 
+def preview_cache_filename(url: str) -> str:
+    """Deterministic thumbnail filename for a URL."""
+    h = hashlib.sha1(str(url).encode("utf-8")).hexdigest()
+    return f"{h}.preview.png"
+
+
 def cache_path(cache_dir: str, url: str) -> str:
     """Absolute cache path for a URL inside cache_dir."""
     return os.path.join(cache_dir, cache_filename(url))
+
+
+def preview_cache_path(cache_dir: str, url: str) -> str:
+    """Absolute thumbnail-cache path for a URL inside cache_dir."""
+    return os.path.join(cache_dir, preview_cache_filename(url))
 
 
 def collect_image_urls(game_data) -> list:

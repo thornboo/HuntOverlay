@@ -51,6 +51,7 @@ from . import user_data
 # module-level behavior. ensure_user_file copies bundled defaults if needed.
 DATA_PATH = data_path()
 STYLE_PATH = style_path()
+HOVER_PREVIEW_MAX = 280
 
 
 # Thin wrappers preserving the original no-arg call sites in the class body.
@@ -147,7 +148,7 @@ class Overlay(QtWidgets.QWidget):
         # Build the panel window.
         binds_label_map = action_labels()
         binds_current = {a: self._bind_label(a) for a in binds_label_map}
-        self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab, self.panel_follow_tab)
+        self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab, self.panel_follow_tab, self.show_user_pois)
         if ICON:
             self.panel.setWindowIcon(QtGui.QIcon(ICON))
 
@@ -166,7 +167,9 @@ class Overlay(QtWidgets.QWidget):
         self.panel.panelFollowTabChanged.connect(self._set_panel_follow_tab)
         self.panel.forceRefresh.connect(self._force_data_refresh)
         self.panel.languageChanged.connect(self._set_language)
-        self.panel.requestPoiEditor.connect(self._start_poi_pick_mode)
+        self.panel.requestPoiPick.connect(self._start_poi_pick_mode)
+        self.panel.requestPoiEditor.connect(self._open_poi_editor_for_category)
+        self.panel.userPoisToggled.connect(self._set_show_user_pois)
         self.panel.requestRuler.connect(self._enter_ruler_mode)
         self.panel.requestClearRulers.connect(self._clear_rulers)
         self.panel.requestOpenDataDir.connect(self._open_data_dir)
@@ -272,7 +275,7 @@ class Overlay(QtWidgets.QWidget):
         self.imageReady.connect(self.update)
         self.panel.setLastUpdateText(format_last_update(load_update_meta().get("last_check", "")))
         self._start_update_check()
-        self._start_image_prefetch(self.game_data)
+        self._start_image_prefetch()
 
     def eventFilter(self, obj, ev):
         if obj is self.panel:
@@ -364,6 +367,14 @@ class Overlay(QtWidgets.QWidget):
         self.block_shift_tab = bool(v)
         self._save()
 
+    def _set_show_user_pois(self, v: bool):
+        self.show_user_pois = bool(v)
+        self._rebuild_all_caches()
+        if self.show_user_pois:
+            self._start_image_prefetch()
+        self._save()
+        self.update()
+
     def _set_language(self, code: str):
         """Persist the chosen language. Takes effect on next launch (the UI is
         built once at startup); show a restart hint in the panel."""
@@ -387,12 +398,16 @@ class Overlay(QtWidgets.QWidget):
         self.user_pois = dlg.result_pois
         user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
         self._rebuild_all_caches()
+        self._start_image_prefetch()
         self.update()
 
         # If the user asked to pick a coordinate from the map, enter pick mode;
         # the picked coordinate reopens the editor with it prefilled.
         if dlg.pick_requested:
             self._enter_pick_mode(dlg.pick_map, dlg.pick_cat)
+
+    def _open_poi_editor_for_category(self, category: str = ""):
+        self._open_poi_editor(self.prof, str(category or ""), None)
 
     def _start_poi_pick_mode(self, category: str = ""):
         """Enter continuous direct-pick mode for user POIs."""
@@ -742,26 +757,52 @@ class Overlay(QtWidgets.QWidget):
                     self._request_image_download(url)
                     return None
 
-                if path in self._hover_pm_cache:
-                    return self._hover_pm_cache[path]
-
-                pm = QtGui.QPixmap(path)
-                if pm.isNull():
-                    self._remove_bad_image_cache(path, url)
-                    self._img_status[url] = "failed"
-                    self._img_failed_at[url] = time.monotonic()
+                pm = self._load_hover_pixmap(url, path)
+                if pm is None:
                     continue
-
-                # Cap the preview size so it never dominates the screen.
-                pm = pm.scaled(280, 280, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-                self._hover_pm_cache[path] = pm
-                self._img_status[url] = "ready"
                 return pm
 
             self._request_image_download(url)
             return None
 
         return None
+
+    def _load_hover_pixmap(self, url: str, source_path: str):
+        preview_path = _images.preview_cache_path(IMG_CACHE_DIR, url)
+        display_path = preview_path if _images.cached_image_valid(preview_path) else source_path
+
+        if display_path in self._hover_pm_cache:
+            return self._hover_pm_cache[display_path]
+
+        pm = QtGui.QPixmap(display_path)
+        if pm.isNull():
+            if display_path == source_path:
+                self._remove_bad_image_cache(source_path, url)
+                self._img_status[url] = "failed"
+                self._img_failed_at[url] = time.monotonic()
+                return None
+            try:
+                os.remove(display_path)
+            except OSError:
+                pass
+            pm = QtGui.QPixmap(source_path)
+            if pm.isNull():
+                self._remove_bad_image_cache(source_path, url)
+                self._img_status[url] = "failed"
+                self._img_failed_at[url] = time.monotonic()
+                return None
+            display_path = source_path
+
+        if pm.width() > HOVER_PREVIEW_MAX or pm.height() > HOVER_PREVIEW_MAX:
+            pm = pm.scaled(
+                HOVER_PREVIEW_MAX,
+                HOVER_PREVIEW_MAX,
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation,
+            )
+        self._hover_pm_cache[display_path] = pm
+        self._img_status[url] = "ready"
+        return pm
 
     def _remove_bad_image_cache(self, path: str, url: str):
         self._hover_pm_cache.pop(path, None)
@@ -822,18 +863,95 @@ class Overlay(QtWidgets.QWidget):
         path = _images.cache_path(IMG_CACHE_DIR, url)
         return not (os.path.isfile(path) and _images.cached_image_valid(path))
 
+    def _image_prefetch_needed(self, url: str) -> bool:
+        if self._image_cache_missing(url):
+            return True
+        return not _images.cached_image_valid(_images.preview_cache_path(IMG_CACHE_DIR, url))
+
+    def _collect_prefetch_image_urls(self, game_data=None):
+        seen = set()
+        out = []
+
+        def add_url(url):
+            if url in seen:
+                return
+            seen.add(url)
+            if _images.is_allowed_image_url(url):
+                out.append(url)
+
+        for pts_by_type in (getattr(self, "cache", {}) or {}).values():
+            if not isinstance(pts_by_type, dict):
+                continue
+            for pts in pts_by_type.values():
+                if not isinstance(pts, list):
+                    continue
+                for pt in pts:
+                    raw = pt.get("raw", {}) if isinstance(pt, dict) else {}
+                    urls = raw.get("u", []) if isinstance(raw, dict) else []
+                    if not isinstance(urls, list):
+                        continue
+                    for url in urls:
+                        add_url(url)
+
+        if game_data is not None:
+            for url in _images.collect_image_urls(game_data):
+                add_url(url)
+
+        return out
+
+    def _ensure_hover_preview(self, url: str) -> bool:
+        source_path = _images.cache_path(IMG_CACHE_DIR, url)
+        if not _images.cached_image_valid(source_path):
+            return False
+
+        preview_path = _images.preview_cache_path(IMG_CACHE_DIR, url)
+        if _images.cached_image_valid(preview_path):
+            return True
+
+        tmp = preview_path + ".part"
+        try:
+            image = QtGui.QImage(source_path)
+            if image.isNull():
+                return False
+            if image.width() > HOVER_PREVIEW_MAX or image.height() > HOVER_PREVIEW_MAX:
+                image = image.scaled(
+                    HOVER_PREVIEW_MAX,
+                    HOVER_PREVIEW_MAX,
+                    QtCore.Qt.KeepAspectRatio,
+                    QtCore.Qt.SmoothTransformation,
+                )
+            os.makedirs(IMG_CACHE_DIR, exist_ok=True)
+            if not image.save(tmp, "PNG"):
+                return False
+            os.replace(tmp, preview_path)
+            return _images.cached_image_valid(preview_path)
+        finally:
+            try:
+                if os.path.isfile(tmp):
+                    os.remove(tmp)
+            except OSError:
+                pass
+
+    def _prime_hover_pixmap(self, url: str):
+        if not _images.is_allowed_image_url(url):
+            return None
+        path = _images.cache_path(IMG_CACHE_DIR, url)
+        if not (os.path.isfile(path) and _images.cached_image_valid(path)):
+            return None
+        return self._load_hover_pixmap(url, path)
+
     def _start_image_prefetch(self, game_data=None):
         if self._image_prefetch_running:
             self._image_prefetch_pending = True
             return
 
-        urls = _images.collect_image_urls(game_data if game_data is not None else self.game_data)
-        missing = [url for url in urls if self._image_cache_missing(url)]
-        if not missing:
+        urls = self._collect_prefetch_image_urls(game_data)
+        pending = [url for url in urls if self._image_prefetch_needed(url)]
+        if not pending:
             return
 
         self._image_prefetch_running = True
-        self._img_prefetch_queued.update(missing)
+        self._img_prefetch_queued.update(pending)
 
         def worker(urls_to_fetch):
             try:
@@ -841,19 +959,22 @@ class Overlay(QtWidgets.QWidget):
                 for url in urls_to_fetch:
                     if not _images.is_allowed_image_url(url):
                         continue
-                    if not self._image_cache_missing(url):
-                        continue
-                    if url in self._img_inflight:
+                    path = _images.cache_path(IMG_CACHE_DIR, url)
+                    if self._image_cache_missing(url):
+                        if url in self._img_inflight:
+                            continue
+                        self.imageDownloadStarted.emit(url)
+                        ok = _ds.fetch_image(url, path)
+                        if ok:
+                            self._ensure_hover_preview(url)
+                        self.imageDownloadFinished.emit(url, ok)
                         continue
 
-                    path = _images.cache_path(IMG_CACHE_DIR, url)
-                    self.imageDownloadStarted.emit(url)
-                    ok = _ds.fetch_image(url, path)
-                    self.imageDownloadFinished.emit(url, ok)
+                    self._ensure_hover_preview(url)
             finally:
                 self.imagePrefetchFinished.emit(urls_to_fetch)
 
-        threading.Thread(target=worker, args=(list(missing),), daemon=True).start()
+        threading.Thread(target=worker, args=(list(pending),), daemon=True).start()
 
     def _request_image_download(self, url: str):
         """On-demand download of a single image (method B), off the UI thread.
@@ -888,6 +1009,8 @@ class Overlay(QtWidgets.QWidget):
             try:
                 os.makedirs(IMG_CACHE_DIR, exist_ok=True)
                 ok = _ds.fetch_image(url, path)
+                if ok:
+                    self._ensure_hover_preview(url)
             except Exception:
                 pass
             finally:
@@ -915,6 +1038,7 @@ class Overlay(QtWidgets.QWidget):
         """Slot — runs on the main thread after an image worker completes."""
         self._finish_image_download(url, ok)
         if self._hover_uses_image_url(url):
+            self._prime_hover_pixmap(url)
             self.imageReady.emit()
 
     def _hover_uses_image_url(self, url: str) -> bool:
@@ -930,7 +1054,7 @@ class Overlay(QtWidgets.QWidget):
         self._image_prefetch_running = False
         if self._image_prefetch_pending:
             self._image_prefetch_pending = False
-            self._start_image_prefetch(self.game_data)
+            self._start_image_prefetch()
 
     def _on_data_update_finished(self, ts: str):
         """Slot — runs on the main thread after the background download completes."""
@@ -942,7 +1066,7 @@ class Overlay(QtWidgets.QWidget):
                 self.type_specs = self._build_type_specs()
                 self._rebuild_all_caches()
                 self.update()
-                self._start_image_prefetch(self.game_data)
+                self._start_image_prefetch()
             except Exception:
                 pass
         self.panel.setLastUpdateText(format_last_update(ts if ts else load_update_meta().get("last_check", "")))
@@ -1041,6 +1165,7 @@ class Overlay(QtWidgets.QWidget):
         # (Tab). Default False = panel stays put so users can always reach it
         # without holding Tab.
         self.panel_follow_tab = bool(st.get("panel_follow_tab", False))
+        self.show_user_pois = bool(st.get("show_user_pois", True))
 
 
         self.binds = self._normalize_keybinds(st.get("keybinds", {}))
@@ -1134,6 +1259,7 @@ class Overlay(QtWidgets.QWidget):
         st["hold_tab_to_show"] = bool(self.hold_tab_mode)
         st["block_shift_tab"] = bool(self.block_shift_tab)
         st["panel_follow_tab"] = bool(self.panel_follow_tab)
+        st["show_user_pois"] = bool(self.show_user_pois)
         st["language"] = getattr(self, "language", _i18n.DEFAULT_LANG)
 
         st["types"] = self.types
@@ -1256,6 +1382,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.chk_tray.setChecked(self.minimize_to_tray)
         self.panel.chk_hold_tab.setChecked(self.hold_tab_mode)
         self.panel.chk_block_shift_tab.setChecked(self.block_shift_tab)
+        self.panel.chk_user_pois.setChecked(self.show_user_pois)
         self.panel.scale_box.setValue(float(self.global_scale))
         self.panel.setMap(self.prof)
 
@@ -1291,7 +1418,10 @@ class Overlay(QtWidgets.QWidget):
         def build_for_category(cat: str):
             items = get_category_list(block, self.fmt, cat)
             # Append user-authored points for this map+category (drawn on top).
-            user_pts = user_data.get_points(self.user_pois, map_name, cat)
+            user_pts = [
+                pt for pt in user_data.get_points(self.user_pois, map_name, cat)
+                if user_data.point_visible(pt)
+            ] if self.show_user_pois else []
             items = user_data.merge_into_points(items, user_pts)
             pts = []
             for it in items:

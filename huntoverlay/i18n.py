@@ -138,6 +138,9 @@ _UI = {
         "Keybinds": "快捷键",
         # Panel — Settings tab
         "Minimize to system tray": "最小化到系统托盘",
+        "Show notification area icon": "显示通知区域图标",
+        "Minimize panel to notification area": "最小化面板到通知区域",
+        "Start hidden in notification area": "启动时隐藏到通知区域",
         "Hold Tab to show overlay": "按住 Tab 显示覆盖层",
         "Block Shift+Tab": "屏蔽 Shift+Tab",
         "Panel follows Tab (show/hide with overlay)": "菜单跟随 Tab（与覆盖层一起显示/隐藏）",
@@ -159,6 +162,7 @@ _UI = {
         "Restore control panel": "恢复控制面板",
         "Quit": "退出",
         "Control panel minimized to tray": "控制面板已最小化到托盘",
+        "Control panel hidden in notification area": "控制面板已隐藏到通知区域",
         "Data: updating...": "数据：正在更新...",
         "Updating map data...": "正在更新地图数据...",
         "Downloading images": "正在下载图片",

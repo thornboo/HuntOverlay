@@ -64,5 +64,8 @@ def test_panel_keeps_high_frequency_controls_on_map_tab(qapp):
         ]
         assert panel.btn_add_poi.parentWidget() is tabs.widget(0)
         assert panel.btn_ruler.parentWidget() is tabs.widget(0)
+        assert panel.chk_show_tray_icon.text() == "显示通知区域图标"
+        assert panel.chk_minimize_to_tray.text() == "最小化面板到通知区域"
+        assert panel.chk_start_hidden_to_tray.text() == "启动时隐藏到通知区域"
     finally:
         set_language(previous_language)

@@ -168,6 +168,43 @@ def test_set_show_user_pois_rebuilds_cache_and_prefetches(monkeypatch, tmp_path)
 
 
 @pytest.mark.unit
+def test_tray_options_are_independent_and_resync_icon(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    calls = []
+    state = SimpleNamespace(
+        show_tray_icon=False,
+        minimize_to_tray=False,
+        start_hidden_to_tray=False,
+        _sync_tray_icon=lambda: calls.append("sync"),
+        _save=lambda: calls.append("save"),
+    )
+
+    assert overlay.Overlay._tray_required(state) is False
+
+    overlay.Overlay._set_show_tray_icon(state, True)
+    assert overlay.Overlay._tray_required(state) is True
+    assert state.show_tray_icon is True
+
+    overlay.Overlay._set_show_tray_icon(state, False)
+    assert overlay.Overlay._tray_required(state) is False
+    overlay.Overlay._set_minimize_to_tray(state, True)
+    assert overlay.Overlay._tray_required(state) is True
+    assert state.minimize_to_tray is True
+
+    overlay.Overlay._set_minimize_to_tray(state, False)
+    overlay.Overlay._set_start_hidden_to_tray(state, True)
+    assert overlay.Overlay._tray_required(state) is True
+    assert state.start_hidden_to_tray is True
+    assert calls == [
+        "sync", "save",
+        "sync", "save",
+        "sync", "save",
+        "sync", "save",
+        "sync", "save",
+    ]
+
+
+@pytest.mark.unit
 def test_build_points_respects_show_user_pois(monkeypatch, tmp_path):
     overlay = _load_overlay(monkeypatch, tmp_path)
     monkeypatch.setattr(

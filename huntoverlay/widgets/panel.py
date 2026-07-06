@@ -24,7 +24,9 @@ class Panel(QtWidgets.QWidget):
 
     requestBindEdit = QtCore.Signal(str)
     resetConfig = QtCore.Signal()
+    trayIconChanged = QtCore.Signal(bool)
     minimizeToTrayChanged = QtCore.Signal(bool)
+    startHiddenToTrayChanged = QtCore.Signal(bool)
     holdTabModeChanged = QtCore.Signal(bool)
     blockShiftTabChanged = QtCore.Signal(bool)
     panelFollowTabChanged = QtCore.Signal(bool)
@@ -39,7 +41,7 @@ class Panel(QtWidgets.QWidget):
     requestOpenDataDir = QtCore.Signal()
 
 
-    def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, start_panel_follow_tab: bool = False, start_show_user_pois: bool = True, p=None):
+    def __init__(self, type_order, type_specs, start_scale: float, binds_label_map: dict, binds_current: dict, aspect: str, config_version: str, start_min_to_tray: bool, start_hold_tab_mode: bool, start_block_shift_tab: bool, start_panel_follow_tab: bool = False, start_show_user_pois: bool = True, start_show_tray_icon: bool = False, start_start_hidden_to_tray: bool = False, p=None):
         super().__init__(p, QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
         self.setWindowTitle(APP_TITLE)
         self.setFixedWidth(360)
@@ -296,10 +298,20 @@ class Panel(QtWidgets.QWidget):
         self.lbl_lang_hint.setVisible(False)
         cv.addWidget(self.lbl_lang_hint)
 
-        self.chk_tray = QtWidgets.QCheckBox(tr("Minimize to system tray"))
-        self.chk_tray.setChecked(bool(start_min_to_tray))
-        cv.addWidget(self.chk_tray)
-        self.chk_tray.toggled.connect(lambda b: self.minimizeToTrayChanged.emit(bool(b)))
+        self.chk_show_tray_icon = QtWidgets.QCheckBox(tr("Show notification area icon"))
+        self.chk_show_tray_icon.setChecked(bool(start_show_tray_icon))
+        cv.addWidget(self.chk_show_tray_icon)
+        self.chk_show_tray_icon.toggled.connect(lambda b: self.trayIconChanged.emit(bool(b)))
+
+        self.chk_minimize_to_tray = QtWidgets.QCheckBox(tr("Minimize panel to notification area"))
+        self.chk_minimize_to_tray.setChecked(bool(start_min_to_tray))
+        cv.addWidget(self.chk_minimize_to_tray)
+        self.chk_minimize_to_tray.toggled.connect(lambda b: self.minimizeToTrayChanged.emit(bool(b)))
+
+        self.chk_start_hidden_to_tray = QtWidgets.QCheckBox(tr("Start hidden in notification area"))
+        self.chk_start_hidden_to_tray.setChecked(bool(start_start_hidden_to_tray))
+        cv.addWidget(self.chk_start_hidden_to_tray)
+        self.chk_start_hidden_to_tray.toggled.connect(lambda b: self.startHiddenToTrayChanged.emit(bool(b)))
 
         self.chk_block_shift_tab = QtWidgets.QCheckBox(tr("Block Shift+Tab"))
         self.chk_block_shift_tab.setChecked(bool(start_block_shift_tab))

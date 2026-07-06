@@ -148,7 +148,22 @@ class Overlay(QtWidgets.QWidget):
         # Build the panel window.
         binds_label_map = action_labels()
         binds_current = {a: self._bind_label(a) for a in binds_label_map}
-        self.panel = Panel(self.type_order, self.type_specs, self.global_scale, binds_label_map, binds_current, self.aspect, CONFIG_VERSION, self.minimize_to_tray, self.hold_tab_mode, self.block_shift_tab, self.panel_follow_tab, self.show_user_pois)
+        self.panel = Panel(
+            self.type_order,
+            self.type_specs,
+            self.global_scale,
+            binds_label_map,
+            binds_current,
+            self.aspect,
+            CONFIG_VERSION,
+            self.minimize_to_tray,
+            self.hold_tab_mode,
+            self.block_shift_tab,
+            self.panel_follow_tab,
+            self.show_user_pois,
+            self.show_tray_icon,
+            self.start_hidden_to_tray,
+        )
         if ICON:
             self.panel.setWindowIcon(QtGui.QIcon(ICON))
 
@@ -161,7 +176,9 @@ class Overlay(QtWidgets.QWidget):
         self.panel.scaleChanged.connect(self._scale_changed)
         self.panel.requestBindEdit.connect(self._edit_keybind)
         self.panel.resetConfig.connect(self._reset_config_to_defaults)
+        self.panel.trayIconChanged.connect(self._set_show_tray_icon)
         self.panel.minimizeToTrayChanged.connect(self._set_minimize_to_tray)
+        self.panel.startHiddenToTrayChanged.connect(self._set_start_hidden_to_tray)
         self.panel.holdTabModeChanged.connect(self._set_hold_tab_mode)
         self.panel.blockShiftTabChanged.connect(self._set_block_shift_tab)
         self.panel.panelFollowTabChanged.connect(self._set_panel_follow_tab)
@@ -186,8 +203,7 @@ class Overlay(QtWidgets.QWidget):
 
         # System tray setup.
         self.tray = None
-        if self.minimize_to_tray:
-            self._ensure_tray()
+        self._sync_tray_icon()
 
         # Make overlay click through and topmost on primary monitor.
         click_through(int(self.winId()))
@@ -250,9 +266,9 @@ class Overlay(QtWidgets.QWidget):
         # Save once at the end to ensure config contains any missing keys we added.
         self._save()
         
-        # Start with the control panel minimized to tray.
-        if self.minimize_to_tray:
-            self._hide_panel_to_tray()
+        # Start with the control panel hidden only when explicitly requested.
+        if self.start_hidden_to_tray:
+            self._hide_panel_to_tray(show_message=False)
         elif self.panel_follow_tab and not self.visible:
             # Follow-Tab on and overlay starts hidden: keep the panel hidden
             # too; it appears when the overlay is shown via Tab.
@@ -287,12 +303,23 @@ class Overlay(QtWidgets.QWidget):
                     return True
         return super().eventFilter(obj, ev)
 
+    def _tray_required(self):
+        return bool(self.show_tray_icon or self.minimize_to_tray or self.start_hidden_to_tray)
+
+    def _sync_tray_icon(self):
+        if self._tray_required():
+            self._ensure_tray()
+        elif self.tray is not None:
+            self.tray.hide()
+
     def _ensure_tray(self):
         """
         Creates tray icon and menu once.
-        Tray is only used when minimize_to_tray is enabled, but we keep it available.
+        Tray is used as an optional restore/quit shortcut and whenever a panel
+        visibility option needs a notification-area restore path.
         """
         if self.tray is not None:
+            self.tray.show()
             return
 
         self.tray = QtWidgets.QSystemTrayIcon(self)
@@ -319,14 +346,15 @@ class Overlay(QtWidgets.QWidget):
         if reason == QtWidgets.QSystemTrayIcon.Trigger:
             self._restore_panel_from_tray()
 
-    def _hide_panel_to_tray(self):
+    def _hide_panel_to_tray(self, show_message: bool = True):
         self._ensure_tray()
         self.panel.hide()
         self.panel.setWindowState(QtCore.Qt.WindowNoState)
-        try:
-            self.tray.showMessage(APP_TITLE, tr("Control panel minimized to tray"), QtWidgets.QSystemTrayIcon.Information, 1500)
-        except:
-            pass
+        if show_message:
+            try:
+                self.tray.showMessage(APP_TITLE, tr("Control panel hidden in notification area"), QtWidgets.QSystemTrayIcon.Information, 1500)
+            except:
+                pass
 
     def _restore_panel_from_tray(self):
         self.panel.showNormal()
@@ -334,9 +362,21 @@ class Overlay(QtWidgets.QWidget):
         self.panel.raise_()
         self.panel.activateWindow()
 
+    def _set_show_tray_icon(self, v: bool):
+        self.show_tray_icon = bool(v)
+        self._sync_tray_icon()
+        self._save()
+
     def _set_minimize_to_tray(self, v: bool):
         self.minimize_to_tray = bool(v)
+        self._sync_tray_icon()
         self._save()
+
+    def _set_start_hidden_to_tray(self, v: bool):
+        self.start_hidden_to_tray = bool(v)
+        self._sync_tray_icon()
+        self._save()
+
     def _set_hold_tab_mode(self, v: bool):
         self.hold_tab_mode = bool(v)
         self._save()
@@ -1162,7 +1202,9 @@ class Overlay(QtWidgets.QWidget):
         if self.global_scale < 0.10: self.global_scale = 0.10
         if self.global_scale > 5.00: self.global_scale = 5.00
 
+        self.show_tray_icon = bool(st.get("show_tray_icon", False))
         self.minimize_to_tray = bool(st.get("minimize_to_tray", False))
+        self.start_hidden_to_tray = bool(st.get("start_hidden_to_tray", False))
         self.hold_tab_mode = bool(st.get("hold_tab_to_show", False))
         self.block_shift_tab = bool(st.get("block_shift_tab", True))
         # When True, the control panel shows/hides together with the overlay
@@ -1259,7 +1301,9 @@ class Overlay(QtWidgets.QWidget):
         st["visible_overlay"] = self.visible
         st["master_on"] = self.master
         st["global_scale"] = float(self.global_scale)
+        st["show_tray_icon"] = bool(self.show_tray_icon)
         st["minimize_to_tray"] = bool(self.minimize_to_tray)
+        st["start_hidden_to_tray"] = bool(self.start_hidden_to_tray)
         st["hold_tab_to_show"] = bool(self.hold_tab_mode)
         st["block_shift_tab"] = bool(self.block_shift_tab)
         st["panel_follow_tab"] = bool(self.panel_follow_tab)
@@ -1383,7 +1427,9 @@ class Overlay(QtWidgets.QWidget):
 
         # Push state back into GUI widgets.
         self.panel.chk_nums.setChecked(self.num_sw)
-        self.panel.chk_tray.setChecked(self.minimize_to_tray)
+        self.panel.chk_show_tray_icon.setChecked(self.show_tray_icon)
+        self.panel.chk_minimize_to_tray.setChecked(self.minimize_to_tray)
+        self.panel.chk_start_hidden_to_tray.setChecked(self.start_hidden_to_tray)
         self.panel.chk_hold_tab.setChecked(self.hold_tab_mode)
         self.panel.chk_block_shift_tab.setChecked(self.block_shift_tab)
         self.panel.chk_user_pois.setChecked(self.show_user_pois)
@@ -1400,6 +1446,7 @@ class Overlay(QtWidgets.QWidget):
 
         # Apply overlay visibility state.
         (self.show if self.visible and self.master else self.hide)()
+        self._sync_tray_icon()
         self._save()
         self.update()
 

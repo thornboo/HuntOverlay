@@ -48,6 +48,29 @@ def get_points(data: dict, map_name: str, category: str) -> list:
     return list(data.get("maps", {}).get(map_name, {}).get(category, []))
 
 
+def count_points(data: dict, map_name: str = "", category: str = "") -> int:
+    """Count user-authored points, optionally narrowed to a map/category."""
+    if not isinstance(data, dict):
+        return 0
+    maps = data.get("maps", {})
+    if not isinstance(maps, dict):
+        return 0
+
+    def count_category(points) -> int:
+        return len(points) if isinstance(points, list) else 0
+
+    def count_map(cats: dict) -> int:
+        if not isinstance(cats, dict):
+            return 0
+        if category:
+            return count_category(cats.get(category, []))
+        return sum(count_category(points) for points in cats.values())
+
+    if map_name:
+        return count_map(maps.get(map_name, {}))
+    return sum(count_map(cats) for cats in maps.values())
+
+
 def add_point(data: dict, map_name: str, category: str, x, y, desc: str = "",
               images=None) -> dict:
     """Return a NEW data dict with one user point appended. Does not mutate input.

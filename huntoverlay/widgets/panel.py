@@ -32,6 +32,7 @@ class Panel(QtWidgets.QWidget):
     languageChanged = QtCore.Signal(str)  # emits language code; applies on restart
     requestPoiEditor = QtCore.Signal(str)
     requestPoiPick = QtCore.Signal(str)
+    customPoiContextChanged = QtCore.Signal()
     userPoisToggled = QtCore.Signal(bool)
     requestRuler = QtCore.Signal()
     requestClearRulers = QtCore.Signal()
@@ -45,7 +46,7 @@ class Panel(QtWidgets.QWidget):
         self.setStyleSheet(
             "QWidget{background:#1e1f22;color:#e6e6e6;font-size:12px;}"
             "QTabWidget::pane{border:1px solid #2b2d30;top:-1px;}"
-            "QTabBar::tab{background:#2b2d30;color:#aaaaaa;padding:5px 14px;border:1px solid #3a3c40;border-bottom:none;}"
+            "QTabBar::tab{background:#2b2d30;color:#aaaaaa;padding:5px 9px;border:1px solid #3a3c40;border-bottom:none;}"
             "QTabBar::tab:selected{background:#1e1f22;color:#e6e6e6;}"
             "QTabBar::tab:hover{color:#e6e6e6;}"
             "QComboBox,QSpinBox,QDoubleSpinBox{background:#2b2d30;color:#e6e6e6;border:1px solid #3a3c40;padding:2px 4px;}"
@@ -64,7 +65,79 @@ class Panel(QtWidgets.QWidget):
         tabs = QtWidgets.QTabWidget()
         outer.addWidget(tabs)
 
-        # ── Tab 1: Types ──────────────────────────────────────────────
+        # ── Tab 1: Map controls ───────────────────────────────────────
+        map_page = QtWidgets.QWidget()
+        mv = QtWidgets.QVBoxLayout(map_page)
+        mv.setContentsMargins(8, 8, 8, 8)
+        mv.setSpacing(6)
+
+        map_row = QtWidgets.QHBoxLayout()
+        map_row.addWidget(QtWidgets.QLabel(tr("Map:")))
+        self.cmb = QtWidgets.QComboBox()
+        # Show Chinese labels but keep the English canonical name as item data,
+        # so the rest of the app keeps receiving English map keys.
+        for m in MAPS:
+            self.cmb.addItem(map_display(m), m)
+        map_row.addWidget(self.cmb, 1)
+        mv.addLayout(map_row)
+        self.cmb.currentIndexChanged.connect(
+            lambda _i: self.mapSel.emit(self.cmb.currentData())
+        )
+
+        scale_row = QtWidgets.QHBoxLayout()
+        scale_row.addWidget(QtWidgets.QLabel(tr("Scale:")))
+        self.btn_dec = QtWidgets.QPushButton("-")
+        self.btn_dec.setFixedWidth(26)
+        self.btn_inc = QtWidgets.QPushButton("+")
+        self.btn_inc.setFixedWidth(26)
+        self.scale_box = QtWidgets.QDoubleSpinBox()
+        self.scale_box.setRange(0.10, 5.00)
+        self.scale_box.setDecimals(2)
+        self.scale_box.setSingleStep(0.05)
+        self.scale_box.setValue(float(start_scale))
+        self.scale_box.setFixedWidth(68)
+        scale_row.addWidget(self.btn_dec)
+        scale_row.addWidget(self.btn_inc)
+        scale_row.addStretch(1)
+        scale_row.addWidget(self.scale_box)
+        mv.addLayout(scale_row)
+        self.btn_dec.clicked.connect(self._dec_scale)
+        self.btn_inc.clicked.connect(self._inc_scale)
+        self.scale_box.valueChanged.connect(lambda x: self.scaleChanged.emit(float(x)))
+
+        ruler_row = QtWidgets.QHBoxLayout()
+        ruler_row.setSpacing(6)
+        self.btn_ruler = QtWidgets.QPushButton(tr("Ruler"))
+        self.btn_clear_rulers = QtWidgets.QPushButton(tr("Clear Rulers"))
+        self.btn_ruler.clicked.connect(self.requestRuler)
+        self.btn_clear_rulers.clicked.connect(self.requestClearRulers)
+        ruler_row.addWidget(self.btn_ruler)
+        ruler_row.addWidget(self.btn_clear_rulers)
+        mv.addLayout(ruler_row)
+
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setStyleSheet("background:#2b2d30;max-height:1px;margin:4px 0;")
+        mv.addWidget(line)
+
+        self.chk_nums = QtWidgets.QCheckBox(tr("1-4 map switch keys"))
+        mv.addWidget(self.chk_nums)
+        self.chk_nums.toggled.connect(self.tnums)
+
+        self.chk_hold_tab = QtWidgets.QCheckBox(tr("Hold Tab to show overlay"))
+        self.chk_hold_tab.setChecked(bool(start_hold_tab_mode))
+        mv.addWidget(self.chk_hold_tab)
+        self.chk_hold_tab.toggled.connect(lambda b: self.holdTabModeChanged.emit(bool(b)))
+
+        self.chk_panel_follow_tab = QtWidgets.QCheckBox(tr("Panel follows Tab (show/hide with overlay)"))
+        self.chk_panel_follow_tab.setChecked(bool(start_panel_follow_tab))
+        mv.addWidget(self.chk_panel_follow_tab)
+        self.chk_panel_follow_tab.toggled.connect(lambda b: self.panelFollowTabChanged.emit(bool(b)))
+
+        mv.addStretch(1)
+        tabs.addTab(map_page, tr("Map"))
+
+        # ── Tab 2: Official POI filters ───────────────────────────────
         types_page = QtWidgets.QWidget()
         tv = QtWidgets.QVBoxLayout(types_page)
         tv.setContentsMargins(8, 8, 8, 8)
@@ -92,7 +165,6 @@ class Panel(QtWidgets.QWidget):
 
         tv.addSpacing(6)
 
-        # Bulk enable/disable all POI categories at once.
         sel_row = QtWidgets.QHBoxLayout()
         sel_row.setSpacing(6)
         btn_all = QtWidgets.QPushButton(tr("Select All"))
@@ -103,50 +175,24 @@ class Panel(QtWidgets.QWidget):
         sel_row.addWidget(btn_none)
         tv.addLayout(sel_row)
 
-        map_row = QtWidgets.QHBoxLayout()
-        map_row.addWidget(QtWidgets.QLabel(tr("Map:")))
-        self.cmb = QtWidgets.QComboBox()
-        # Show Chinese labels but keep the English canonical name as item data,
-        # so the rest of the app keeps receiving English map keys.
-        for m in MAPS:
-            self.cmb.addItem(map_display(m), m)
-        map_row.addWidget(self.cmb, 1)
-        tv.addLayout(map_row)
-        self.cmb.currentIndexChanged.connect(
-            lambda _i: self.mapSel.emit(self.cmb.currentData())
-        )
-
-        self.chk_nums = QtWidgets.QCheckBox(tr("1-4 map switch keys"))
-        tv.addWidget(self.chk_nums)
-        self.chk_nums.toggled.connect(self.tnums)
-
-        tv.addSpacing(6)
-
-        scale_row = QtWidgets.QHBoxLayout()
-        scale_row.addWidget(QtWidgets.QLabel(tr("Scale:")))
-        self.btn_dec = QtWidgets.QPushButton("−")
-        self.btn_dec.setFixedWidth(26)
-        self.btn_inc = QtWidgets.QPushButton("+")
-        self.btn_inc.setFixedWidth(26)
-        self.scale_box = QtWidgets.QDoubleSpinBox()
-        self.scale_box.setRange(0.10, 5.00)
-        self.scale_box.setDecimals(2)
-        self.scale_box.setSingleStep(0.05)
-        self.scale_box.setValue(float(start_scale))
-        self.scale_box.setFixedWidth(68)
-        scale_row.addWidget(self.btn_dec)
-        scale_row.addWidget(self.btn_inc)
-        scale_row.addStretch(1)
-        scale_row.addWidget(self.scale_box)
-        tv.addLayout(scale_row)
-        self.btn_dec.clicked.connect(self._dec_scale)
-        self.btn_inc.clicked.connect(self._inc_scale)
-        self.scale_box.valueChanged.connect(lambda x: self.scaleChanged.emit(float(x)))
-
         tv.addSpacing(6)
         self.btn_def_colors = QtWidgets.QPushButton(tr("Reset Colors"))
         tv.addWidget(self.btn_def_colors)
         self.btn_def_colors.clicked.connect(self.resetColors)
+
+        tv.addStretch(1)
+        tabs.addTab(types_page, tr("POIs"))
+
+        # ── Tab 3: User POIs ──────────────────────────────────────────
+        custom_page = QtWidgets.QWidget()
+        uv = QtWidgets.QVBoxLayout(custom_page)
+        uv.setContentsMargins(8, 8, 8, 8)
+        uv.setSpacing(6)
+
+        self.chk_user_pois = QtWidgets.QCheckBox(tr("Show custom POIs"))
+        self.chk_user_pois.setChecked(bool(start_show_user_pois))
+        uv.addWidget(self.chk_user_pois)
+        self.chk_user_pois.toggled.connect(lambda b: self.userPoisToggled.emit(bool(b)))
 
         poi_type_row = QtWidgets.QHBoxLayout()
         poi_type_row.addWidget(QtWidgets.QLabel(tr("POI type:")))
@@ -156,35 +202,29 @@ class Panel(QtWidgets.QWidget):
                 continue
             self.cmb_poi_type.addItem(type_specs[tkey]["label"], tkey)
         poi_type_row.addWidget(self.cmb_poi_type, 1)
-        tv.addLayout(poi_type_row)
+        uv.addLayout(poi_type_row)
+        self.cmb_poi_type.currentIndexChanged.connect(
+            lambda _i: self.customPoiContextChanged.emit()
+        )
 
-        self.chk_user_pois = QtWidgets.QCheckBox(tr("Show custom POIs"))
-        self.chk_user_pois.setChecked(bool(start_show_user_pois))
-        tv.addWidget(self.chk_user_pois)
-        self.chk_user_pois.toggled.connect(lambda b: self.userPoisToggled.emit(bool(b)))
+        self.lbl_custom_counts = QtWidgets.QLabel("")
+        self.lbl_custom_counts.setStyleSheet("color:#8a8d93;font-size:11px;")
+        uv.addWidget(self.lbl_custom_counts)
 
         poi_btn_row = QtWidgets.QHBoxLayout()
         poi_btn_row.setSpacing(6)
-        self.btn_add_poi = QtWidgets.QPushButton(tr("Add POI"))
+        self.btn_add_poi = QtWidgets.QPushButton(tr("Add from Map"))
         self.btn_manage_pois = QtWidgets.QPushButton(tr("Manage POIs"))
         self.btn_add_poi.clicked.connect(self._emit_poi_pick_request)
         self.btn_manage_pois.clicked.connect(self._emit_poi_editor_request)
         poi_btn_row.addWidget(self.btn_add_poi)
         poi_btn_row.addWidget(self.btn_manage_pois)
-        tv.addLayout(poi_btn_row)
+        uv.addLayout(poi_btn_row)
 
-        self.btn_ruler = QtWidgets.QPushButton(tr("Ruler"))
-        tv.addWidget(self.btn_ruler)
-        self.btn_ruler.clicked.connect(self.requestRuler)
+        uv.addStretch(1)
+        tabs.addTab(custom_page, tr("Custom"))
 
-        self.btn_clear_rulers = QtWidgets.QPushButton(tr("Clear Rulers"))
-        tv.addWidget(self.btn_clear_rulers)
-        self.btn_clear_rulers.clicked.connect(self.requestClearRulers)
-
-        tv.addStretch(1)
-        tabs.addTab(types_page, tr("POIs"))
-
-        # ── Tab 2: Keybinds ───────────────────────────────────────────
+        # ── Tab 4: Keybinds ───────────────────────────────────────────
         kb_page = QtWidgets.QWidget()
         kv = QtWidgets.QVBoxLayout(kb_page)
         kv.setContentsMargins(8, 8, 8, 8)
@@ -209,7 +249,7 @@ class Panel(QtWidgets.QWidget):
         kv.addStretch(1)
         tabs.addTab(kb_page, tr("Keybinds"))
 
-        # ── Tab 3: Settings ───────────────────────────────────────────
+        # ── Tab 5: App settings ───────────────────────────────────────
         cfg_page = QtWidgets.QWidget()
         cv = QtWidgets.QVBoxLayout(cfg_page)
         cv.setContentsMargins(8, 8, 8, 8)
@@ -239,20 +279,10 @@ class Panel(QtWidgets.QWidget):
         cv.addWidget(self.chk_tray)
         self.chk_tray.toggled.connect(lambda b: self.minimizeToTrayChanged.emit(bool(b)))
 
-        self.chk_hold_tab = QtWidgets.QCheckBox(tr("Hold Tab to show overlay"))
-        self.chk_hold_tab.setChecked(bool(start_hold_tab_mode))
-        cv.addWidget(self.chk_hold_tab)
-        self.chk_hold_tab.toggled.connect(lambda b: self.holdTabModeChanged.emit(bool(b)))
-
         self.chk_block_shift_tab = QtWidgets.QCheckBox(tr("Block Shift+Tab"))
         self.chk_block_shift_tab.setChecked(bool(start_block_shift_tab))
         cv.addWidget(self.chk_block_shift_tab)
         self.chk_block_shift_tab.toggled.connect(lambda b: self.blockShiftTabChanged.emit(bool(b)))
-
-        self.chk_panel_follow_tab = QtWidgets.QCheckBox(tr("Panel follows Tab (show/hide with overlay)"))
-        self.chk_panel_follow_tab.setChecked(bool(start_panel_follow_tab))
-        cv.addWidget(self.chk_panel_follow_tab)
-        self.chk_panel_follow_tab.toggled.connect(lambda b: self.panelFollowTabChanged.emit(bool(b)))
 
         cv.addSpacing(4)
         self.btn_reset_cfg = QtWidgets.QPushButton(tr("Reset to Default Config"))
@@ -286,9 +316,9 @@ class Panel(QtWidgets.QWidget):
         cv.addWidget(lbl_path)
 
         cv.addStretch(1)
-        tabs.addTab(cfg_page, tr("Settings"))
+        tabs.addTab(cfg_page, tr("App"))
 
-        # ── Tab 4: Bosses (reference) ─────────────────────────────────
+        # ── Tab 6: Bosses (reference) ─────────────────────────────────
         tabs.addTab(self._build_boss_tab(), tr("Bosses"))
 
     def _build_boss_tab(self):
@@ -402,6 +432,12 @@ class Panel(QtWidgets.QWidget):
 
     def setLastUpdateText(self, txt: str):
         self.update_label.setText(txt)
+
+    def setCustomPoiCounts(self, current: int, total: int):
+        self.lbl_custom_counts.setText(
+            f"{tr('Current category:')} {int(current)}  |  "
+            f"{tr('All custom:')} {int(total)}"
+        )
 
     def setKeybindLabel(self, action: str, txt: str):
         entry = self.kb_rows.get(action)

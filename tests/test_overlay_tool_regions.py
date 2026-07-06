@@ -222,6 +222,27 @@ def test_build_points_respects_show_user_pois(monkeypatch, tmp_path):
 
 
 @pytest.mark.unit
+def test_refresh_custom_poi_counts_uses_current_map_and_category(monkeypatch, tmp_path):
+    overlay = _load_overlay(monkeypatch, tmp_path)
+    user_pois = overlay.user_data.empty_user_pois()
+    user_pois = overlay.user_data.add_point(user_pois, "DeSalle", "armories", 1, 1)
+    user_pois = overlay.user_data.add_point(user_pois, "DeSalle", "armories", 2, 2)
+    user_pois = overlay.user_data.add_point(user_pois, "DeSalle", "spawns", 3, 3)
+    user_pois = overlay.user_data.add_point(user_pois, "Lawson Delta", "armories", 4, 4)
+
+    calls = []
+    panel = SimpleNamespace(
+        cmb_poi_type=SimpleNamespace(currentData=lambda: "armories"),
+        setCustomPoiCounts=lambda current, total: calls.append((current, total)),
+    )
+    state = SimpleNamespace(user_pois=user_pois, prof="DeSalle", panel=panel)
+
+    overlay.Overlay._refresh_custom_poi_counts(state)
+
+    assert calls == [(2, 4)]
+
+
+@pytest.mark.unit
 def test_clear_rulers_removes_all_maps(monkeypatch, tmp_path):
     overlay = _load_overlay(monkeypatch, tmp_path)
     calls = []

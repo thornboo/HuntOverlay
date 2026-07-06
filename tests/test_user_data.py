@@ -8,6 +8,7 @@ from huntoverlay.user_data import (
     empty_user_pois,
     coord_valid,
     get_points,
+    count_points,
     add_point,
     point_visible,
     set_point_visible,
@@ -119,6 +120,23 @@ def test_add_multiple_points_accumulate():
     d = add_point(d, "DeSalle", "armories", 1, 1)
     d = add_point(d, "DeSalle", "armories", 2, 2)
     assert len(get_points(d, "DeSalle", "armories")) == 2
+
+
+@pytest.mark.unit
+def test_count_points_scopes_by_map_and_category():
+    d = empty_user_pois()
+    d = add_point(d, "DeSalle", "armories", 1, 1)
+    d = add_point(d, "DeSalle", "armories", 2, 2)
+    d = add_point(d, "DeSalle", "spawns", 3, 3)
+    d = add_point(d, "Lawson Delta", "armories", 4, 4)
+    d = set_point_visible(d, "DeSalle", "armories", 1, False)
+
+    assert count_points(d, "DeSalle", "armories") == 2
+    assert count_points(d, "DeSalle") == 3
+    assert count_points(d, "Lawson Delta", "armories") == 1
+    assert count_points(d) == 4
+    assert count_points(d, "Nope", "armories") == 0
+    assert count_points(None) == 0
 
 
 @pytest.mark.unit

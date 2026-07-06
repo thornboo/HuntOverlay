@@ -169,6 +169,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.languageChanged.connect(self._set_language)
         self.panel.requestPoiPick.connect(self._start_poi_pick_mode)
         self.panel.requestPoiEditor.connect(self._open_poi_editor_for_category)
+        self.panel.customPoiContextChanged.connect(self._refresh_custom_poi_counts)
         self.panel.userPoisToggled.connect(self._set_show_user_pois)
         self.panel.requestRuler.connect(self._enter_ruler_mode)
         self.panel.requestClearRulers.connect(self._clear_rulers)
@@ -179,6 +180,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.setMap(self.prof)
         for k in self.type_order:
             self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
+        self._refresh_custom_poi_counts()
 
         self._position_panel_top_right()
 
@@ -399,6 +401,7 @@ class Overlay(QtWidgets.QWidget):
         user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
         self._rebuild_all_caches()
         self._start_image_prefetch()
+        self._refresh_custom_poi_counts()
         self.update()
 
         # If the user asked to pick a coordinate from the map, enter pick mode;
@@ -512,6 +515,7 @@ class Overlay(QtWidgets.QWidget):
                 self.user_pois = user_data.add_point(self.user_pois, mp, cat, x, y)
                 user_data.save_user_pois(USER_POIS_PATH, self.user_pois)
                 self._rebuild_all_caches()
+                self._refresh_custom_poi_counts()
                 self.update()
             except ValueError:
                 pass
@@ -1385,6 +1389,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.chk_user_pois.setChecked(self.show_user_pois)
         self.panel.scale_box.setValue(float(self.global_scale))
         self.panel.setMap(self.prof)
+        self._refresh_custom_poi_counts()
 
         for k in self.type_order:
             self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
@@ -1403,11 +1408,18 @@ class Overlay(QtWidgets.QWidget):
             self.prof = name
             self._apply_rect()
             self._save()
+            self._refresh_custom_poi_counts()
             self.update()
 
     def _rebuild_all_caches(self):
         for m in MAPS:
             self.cache[m] = self._build_points_for_map(m)
+
+    def _refresh_custom_poi_counts(self):
+        category = str(self.panel.cmb_poi_type.currentData() or "")
+        current = user_data.count_points(self.user_pois, self.prof, category)
+        total = user_data.count_points(self.user_pois)
+        self.panel.setCustomPoiCounts(current, total)
 
     def _build_points_for_map(self, map_name: str):
         block = get_map_block(self.game_data, self.fmt, map_name)

@@ -65,6 +65,17 @@ class Panel(QtWidgets.QWidget):
         tabs = QtWidgets.QTabWidget()
         outer.addWidget(tabs)
 
+        def separator():
+            line = QtWidgets.QFrame()
+            line.setFrameShape(QtWidgets.QFrame.HLine)
+            line.setStyleSheet("background:#2b2d30;max-height:1px;margin:4px 0;")
+            return line
+
+        def section_label(text: str):
+            lbl = QtWidgets.QLabel(tr(text))
+            lbl.setStyleSheet("font-weight:bold;color:#e6e6e6;")
+            return lbl
+
         # ── Tab 1: Map controls ───────────────────────────────────────
         map_page = QtWidgets.QWidget()
         mv = QtWidgets.QVBoxLayout(map_page)
@@ -105,34 +116,66 @@ class Panel(QtWidgets.QWidget):
         self.btn_inc.clicked.connect(self._inc_scale)
         self.scale_box.valueChanged.connect(lambda x: self.scaleChanged.emit(float(x)))
 
-        ruler_row = QtWidgets.QHBoxLayout()
-        ruler_row.setSpacing(6)
+        mv.addWidget(separator())
+
+        official_row = QtWidgets.QHBoxLayout()
+        official_row.setSpacing(6)
+        official_row.addWidget(QtWidgets.QLabel(tr("Official POIs:")))
+        btn_show_all = QtWidgets.QPushButton(tr("Show All POIs"))
+        btn_hide_all = QtWidgets.QPushButton(tr("Hide All POIs"))
+        btn_show_all.clicked.connect(lambda: self._set_all_types(True))
+        btn_hide_all.clicked.connect(lambda: self._set_all_types(False))
+        official_row.addWidget(btn_show_all)
+        official_row.addWidget(btn_hide_all)
+        mv.addLayout(official_row)
+
+        mv.addWidget(separator())
+
+        mv.addWidget(section_label("Custom POIs:"))
+        self.chk_user_pois = QtWidgets.QCheckBox(tr("Show custom POIs"))
+        self.chk_user_pois.setChecked(bool(start_show_user_pois))
+        mv.addWidget(self.chk_user_pois)
+        self.chk_user_pois.toggled.connect(lambda b: self.userPoisToggled.emit(bool(b)))
+
+        poi_type_row = QtWidgets.QHBoxLayout()
+        poi_type_row.addWidget(QtWidgets.QLabel(tr("POI type:")))
+        self.cmb_poi_type = QtWidgets.QComboBox()
+        for tkey in type_order:
+            if tkey == "possible_xp":
+                continue
+            self.cmb_poi_type.addItem(type_specs[tkey]["label"], tkey)
+        poi_type_row.addWidget(self.cmb_poi_type, 1)
+        mv.addLayout(poi_type_row)
+        self.cmb_poi_type.currentIndexChanged.connect(
+            lambda _i: self.customPoiContextChanged.emit()
+        )
+
+        self.lbl_custom_counts = QtWidgets.QLabel("")
+        self.lbl_custom_counts.setStyleSheet("color:#8a8d93;font-size:11px;")
+        mv.addWidget(self.lbl_custom_counts)
+
+        poi_btn_row = QtWidgets.QHBoxLayout()
+        poi_btn_row.setSpacing(6)
+        self.btn_add_poi = QtWidgets.QPushButton(tr("Add from Map"))
+        self.btn_manage_pois = QtWidgets.QPushButton(tr("Manage POIs"))
+        self.btn_add_poi.clicked.connect(self._emit_poi_pick_request)
+        self.btn_manage_pois.clicked.connect(self._emit_poi_editor_request)
+        poi_btn_row.addWidget(self.btn_add_poi)
+        poi_btn_row.addWidget(self.btn_manage_pois)
+        mv.addLayout(poi_btn_row)
+
+        mv.addWidget(separator())
+
+        tool_row = QtWidgets.QHBoxLayout()
+        tool_row.setSpacing(6)
+        tool_row.addWidget(QtWidgets.QLabel(tr("Tools:")))
         self.btn_ruler = QtWidgets.QPushButton(tr("Ruler"))
         self.btn_clear_rulers = QtWidgets.QPushButton(tr("Clear Rulers"))
         self.btn_ruler.clicked.connect(self.requestRuler)
         self.btn_clear_rulers.clicked.connect(self.requestClearRulers)
-        ruler_row.addWidget(self.btn_ruler)
-        ruler_row.addWidget(self.btn_clear_rulers)
-        mv.addLayout(ruler_row)
-
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.HLine)
-        line.setStyleSheet("background:#2b2d30;max-height:1px;margin:4px 0;")
-        mv.addWidget(line)
-
-        self.chk_nums = QtWidgets.QCheckBox(tr("1-4 map switch keys"))
-        mv.addWidget(self.chk_nums)
-        self.chk_nums.toggled.connect(self.tnums)
-
-        self.chk_hold_tab = QtWidgets.QCheckBox(tr("Hold Tab to show overlay"))
-        self.chk_hold_tab.setChecked(bool(start_hold_tab_mode))
-        mv.addWidget(self.chk_hold_tab)
-        self.chk_hold_tab.toggled.connect(lambda b: self.holdTabModeChanged.emit(bool(b)))
-
-        self.chk_panel_follow_tab = QtWidgets.QCheckBox(tr("Panel follows Tab (show/hide with overlay)"))
-        self.chk_panel_follow_tab.setChecked(bool(start_panel_follow_tab))
-        mv.addWidget(self.chk_panel_follow_tab)
-        self.chk_panel_follow_tab.toggled.connect(lambda b: self.panelFollowTabChanged.emit(bool(b)))
+        tool_row.addWidget(self.btn_ruler)
+        tool_row.addWidget(self.btn_clear_rulers)
+        mv.addLayout(tool_row)
 
         mv.addStretch(1)
         tabs.addTab(map_page, tr("Map"))
@@ -183,52 +226,20 @@ class Panel(QtWidgets.QWidget):
         tv.addStretch(1)
         tabs.addTab(types_page, tr("POIs"))
 
-        # ── Tab 3: User POIs ──────────────────────────────────────────
-        custom_page = QtWidgets.QWidget()
-        uv = QtWidgets.QVBoxLayout(custom_page)
-        uv.setContentsMargins(8, 8, 8, 8)
-        uv.setSpacing(6)
+        # ── Tab 3: Settings ───────────────────────────────────────────
+        cfg_page = QtWidgets.QWidget()
+        cfg_outer = QtWidgets.QVBoxLayout(cfg_page)
+        cfg_outer.setContentsMargins(0, 0, 0, 0)
 
-        self.chk_user_pois = QtWidgets.QCheckBox(tr("Show custom POIs"))
-        self.chk_user_pois.setChecked(bool(start_show_user_pois))
-        uv.addWidget(self.chk_user_pois)
-        self.chk_user_pois.toggled.connect(lambda b: self.userPoisToggled.emit(bool(b)))
+        cfg_scroll = QtWidgets.QScrollArea()
+        cfg_scroll.setWidgetResizable(True)
+        cfg_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        cfg_inner = QtWidgets.QWidget()
+        cv = QtWidgets.QVBoxLayout(cfg_inner)
+        cv.setContentsMargins(8, 8, 8, 8)
+        cv.setSpacing(6)
 
-        poi_type_row = QtWidgets.QHBoxLayout()
-        poi_type_row.addWidget(QtWidgets.QLabel(tr("POI type:")))
-        self.cmb_poi_type = QtWidgets.QComboBox()
-        for tkey in type_order:
-            if tkey == "possible_xp":
-                continue
-            self.cmb_poi_type.addItem(type_specs[tkey]["label"], tkey)
-        poi_type_row.addWidget(self.cmb_poi_type, 1)
-        uv.addLayout(poi_type_row)
-        self.cmb_poi_type.currentIndexChanged.connect(
-            lambda _i: self.customPoiContextChanged.emit()
-        )
-
-        self.lbl_custom_counts = QtWidgets.QLabel("")
-        self.lbl_custom_counts.setStyleSheet("color:#8a8d93;font-size:11px;")
-        uv.addWidget(self.lbl_custom_counts)
-
-        poi_btn_row = QtWidgets.QHBoxLayout()
-        poi_btn_row.setSpacing(6)
-        self.btn_add_poi = QtWidgets.QPushButton(tr("Add from Map"))
-        self.btn_manage_pois = QtWidgets.QPushButton(tr("Manage POIs"))
-        self.btn_add_poi.clicked.connect(self._emit_poi_pick_request)
-        self.btn_manage_pois.clicked.connect(self._emit_poi_editor_request)
-        poi_btn_row.addWidget(self.btn_add_poi)
-        poi_btn_row.addWidget(self.btn_manage_pois)
-        uv.addLayout(poi_btn_row)
-
-        uv.addStretch(1)
-        tabs.addTab(custom_page, tr("Custom"))
-
-        # ── Tab 4: Keybinds ───────────────────────────────────────────
-        kb_page = QtWidgets.QWidget()
-        kv = QtWidgets.QVBoxLayout(kb_page)
-        kv.setContentsMargins(8, 8, 8, 8)
-        kv.setSpacing(4)
+        cv.addWidget(section_label("Keybinds"))
 
         self.kb_rows = {}
         for action, label in binds_label_map.items():
@@ -242,18 +253,29 @@ class Panel(QtWidgets.QWidget):
             btn = QtWidgets.QPushButton(tr("Set"))
             btn.setFixedWidth(48)
             row.addWidget(btn)
-            kv.addLayout(row)
+            cv.addLayout(row)
             self.kb_rows[action] = (btn, cur_lbl)
             btn.clicked.connect(lambda _, a=action: self.requestBindEdit.emit(a))
 
-        kv.addStretch(1)
-        tabs.addTab(kb_page, tr("Keybinds"))
+        cv.addWidget(separator())
+        cv.addWidget(section_label("Overlay:"))
 
-        # ── Tab 5: App settings ───────────────────────────────────────
-        cfg_page = QtWidgets.QWidget()
-        cv = QtWidgets.QVBoxLayout(cfg_page)
-        cv.setContentsMargins(8, 8, 8, 8)
-        cv.setSpacing(6)
+        self.chk_nums = QtWidgets.QCheckBox(tr("1-4 map switch keys"))
+        cv.addWidget(self.chk_nums)
+        self.chk_nums.toggled.connect(self.tnums)
+
+        self.chk_hold_tab = QtWidgets.QCheckBox(tr("Hold Tab to show overlay"))
+        self.chk_hold_tab.setChecked(bool(start_hold_tab_mode))
+        cv.addWidget(self.chk_hold_tab)
+        self.chk_hold_tab.toggled.connect(lambda b: self.holdTabModeChanged.emit(bool(b)))
+
+        self.chk_panel_follow_tab = QtWidgets.QCheckBox(tr("Panel follows Tab (show/hide with overlay)"))
+        self.chk_panel_follow_tab.setChecked(bool(start_panel_follow_tab))
+        cv.addWidget(self.chk_panel_follow_tab)
+        self.chk_panel_follow_tab.toggled.connect(lambda b: self.panelFollowTabChanged.emit(bool(b)))
+
+        cv.addWidget(separator())
+        cv.addWidget(section_label("Application:"))
 
         # Language selector (change applies on restart).
         lang_row = QtWidgets.QHBoxLayout()
@@ -316,9 +338,11 @@ class Panel(QtWidgets.QWidget):
         cv.addWidget(lbl_path)
 
         cv.addStretch(1)
-        tabs.addTab(cfg_page, tr("App"))
+        cfg_scroll.setWidget(cfg_inner)
+        cfg_outer.addWidget(cfg_scroll)
+        tabs.addTab(cfg_page, tr("Settings"))
 
-        # ── Tab 6: Bosses (reference) ─────────────────────────────────
+        # ── Tab 4: Bosses (reference) ─────────────────────────────────
         tabs.addTab(self._build_boss_tab(), tr("Bosses"))
 
     def _build_boss_tab(self):

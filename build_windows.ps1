@@ -192,7 +192,13 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
 
 Write-Step "检查项目文件"
-$requiredFiles = @("HuntOverlay.py", "data.json", "poiData.json", "myicon.ico")
+$requiredFiles = @(
+    "HuntOverlay.py",
+    "data.json",
+    "poiData.json",
+    "myicon.ico",
+    "huntoverlay\qml\ControlCenter.qml"
+)
 foreach ($file in $requiredFiles) {
     if (-not (Test-Path (Join-Path $Root $file))) {
         Fail "缺少必要文件：$file"
@@ -243,9 +249,14 @@ $commonArgs = @(
     "--windowed",
     "--icon", "myicon.ico",
     "--collect-submodules", "huntoverlay",
+    "--hidden-import", "PySide6.QtQml",
+    "--hidden-import", "PySide6.QtQuick",
+    "--hidden-import", "PySide6.QtQuickWidgets",
+    "--hidden-import", "PySide6.QtQuickControls2",
     "--add-data", "data.json;.",
     "--add-data", "poiData.json;.",
     "--add-data", "myicon.ico;.",
+    "--add-data", "huntoverlay\qml;huntoverlay\qml",
     "HuntOverlay.py"
 )
 

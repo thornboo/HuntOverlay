@@ -269,7 +269,7 @@ def test_refresh_custom_poi_counts_uses_current_map_and_category(monkeypatch, tm
 
     calls = []
     panel = SimpleNamespace(
-        cmb_poi_type=SimpleNamespace(currentData=lambda: "armories"),
+        currentPoiType=lambda: "armories",
         setCustomPoiCounts=lambda current, total: calls.append((current, total)),
     )
     state = SimpleNamespace(user_pois=user_pois, prof="DeSalle", panel=panel)

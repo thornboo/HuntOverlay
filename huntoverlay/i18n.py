@@ -228,6 +228,7 @@ _UI = {
             "请按下一个按键\n可同时按住 Ctrl / Alt / Shift\nEsc 取消",
         # Dialogs — color picker
         "Pick a Color": "选择颜色",
+        "Choose marker color": "选择标记颜色",
         "Hue": "色相",
         "Red": "红",
         "Green": "绿",

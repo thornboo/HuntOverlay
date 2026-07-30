@@ -1,19 +1,15 @@
-"""Control-center layout smoke tests."""
+"""QML control-center shell and bridge contract tests."""
 
 import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("QT_QUICK_BACKEND", "software")
 
 import pytest
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtQuickWidgets, QtWidgets
 
 from huntoverlay.i18n import get_language, set_language
-from huntoverlay.widgets.panel import (
-    Panel,
-    TacticalComboBox,
-    TacticalDoubleSpinBox,
-    centered_window_position,
-)
+from huntoverlay.widgets.panel import Panel, centered_window_position
 
 
 @pytest.fixture
@@ -52,75 +48,149 @@ def panel(qapp):
         {"toggle_master": "总开关"},
         {"toggle_master": "F1"},
         "16:9",
-        "1",
+        "1.2.0",
         False,
         False,
         False,
     )
+    qapp.processEvents()
     try:
         yield widget
     finally:
+        widget.qml_view.setSource(QtCore.QUrl())
+        widget.close()
         widget.deleteLater()
+        qapp.processEvents()
         set_language(previous_language)
 
 
 @pytest.mark.unit
-def test_panel_uses_control_center_shell(panel):
-    assert panel.findChild(QtWidgets.QTabWidget) is None
-    assert panel.page_stack.count() == 4
-    assert [button.text() for button in panel.nav_buttons] == [
-        "地图与工具",
-        "官方点位",
-        "首领资料",
-        "设置",
+def test_panel_loads_qml_control_center_shell(panel):
+    assert isinstance(panel.qml_view, QtQuickWidgets.QQuickWidget)
+    assert panel.qml_view.status() == QtQuickWidgets.QQuickWidget.Ready
+    assert panel.qml_view.errors() == []
+
+    root = panel.qml_view.rootObject()
+    assert root is not None
+    assert root.objectName() == "controlCenterRoot"
+    assert root.property("pageCount") == 4
+    assert root.property("currentPage") == 0
+    assert panel.uiText("Map & Tools") == "地图与工具"
+
+
+@pytest.mark.unit
+def test_navigation_switches_the_visible_qml_page(panel):
+    panel.selectPage(2)
+
+    assert panel.qml_view.rootObject().property("currentPage") == 2
+
+
+@pytest.mark.unit
+def test_map_page_exposes_high_frequency_controls(panel):
+    root = panel.qml_view.rootObject()
+
+    assert root.findChild(QtCore.QObject, "mapSelector") is not None
+    assert root.findChild(QtCore.QObject, "numberSwitch") is not None
+    assert root.findChild(QtCore.QObject, "userPoisSwitch") is not None
+    assert root.findChild(QtCore.QObject, "customPoiSelector") is not None
+    assert root.findChild(QtCore.QObject, "refreshButton") is not None
+
+
+@pytest.mark.unit
+def test_bridge_models_keep_runtime_values(panel):
+    assert [item["value"] for item in panel.mapOptions] == [
+        "Stillwater Bayou",
+        "Lawson Delta",
+        "DeSalle",
+        "Mammon's Gulch",
     ]
-    assert all(not button.icon().isNull() for button in panel.nav_buttons)
-    assert panel.page_stack.currentWidget() is panel.map_page
-    assert panel.nav_buttons[0].isChecked() is True
+    assert [item["value"] for item in panel.customPoiOptions] == [
+        "spawns",
+        "armories",
+    ]
+    assert panel.currentPoiType() == "spawns"
+    assert panel.typeCount == 3
+    assert panel.keybindItems == [
+        {
+            "action": "toggle_master",
+            "label": "总开关",
+            "value": "F1",
+        }
+    ]
 
 
 @pytest.mark.unit
-def test_navigation_switches_the_visible_page(panel):
-    panel.nav_buttons[2].click()
+def test_external_setters_update_qml_state_without_user_signals(panel):
+    emitted = []
+    panel.mapSel.connect(lambda value: emitted.append(("map", value)))
+    panel.scaleChanged.connect(
+        lambda value: emitted.append(("scale", value))
+    )
+    panel.trayIconChanged.connect(
+        lambda value: emitted.append(("tray", value))
+    )
 
-    assert panel.page_stack.currentWidget() is panel.bosses_page
-    assert panel.nav_buttons[2].isChecked() is True
-    assert panel.page_title_label.text() == "首领资料"
+    panel.setMap("Lawson Delta")
+    panel.setScale(1.25)
+    panel.setTrayIconEnabled(True)
+    panel.setCustomPoiCounts(3, 12)
+    panel.setKeybindLabel("toggle_master", "Ctrl+F1")
 
-
-@pytest.mark.unit
-def test_map_page_keeps_high_frequency_controls_together(panel):
-    for control in (
-        panel.cmb,
-        panel.scale_box,
-        panel.chk_nums,
-        panel.btn_add_poi,
-        panel.btn_manage_pois,
-        panel.btn_ruler,
-        panel.btn_clear_rulers,
-    ):
-        assert panel.map_page.isAncestorOf(control)
-
-
-@pytest.mark.unit
-def test_platform_independent_input_arrows_are_kept(panel):
-    assert isinstance(panel.cmb, TacticalComboBox)
-    assert isinstance(panel.cmb_poi_type, TacticalComboBox)
-    assert isinstance(panel.cmb_lang, TacticalComboBox)
-    assert isinstance(panel.scale_box, TacticalDoubleSpinBox)
+    assert emitted == []
+    assert panel.currentMapIndex == 1
+    assert panel.currentMapLabel == "劳森三角洲"
+    assert panel.scaleValue == pytest.approx(1.25)
+    assert panel.trayIconEnabled is True
+    assert panel.customPoiCountText == "当前分类： 3  |  全部自定义： 12"
+    assert panel.keybindItems[0]["value"] == "Ctrl+F1"
 
 
 @pytest.mark.unit
-def test_settings_page_keeps_recovery_controls_separate(panel):
-    assert panel.chk_show_tray_icon.text() == "显示通知区域图标"
-    assert panel.chk_minimize_to_tray.text() == "最小化面板到通知区域"
-    assert panel.chk_start_hidden_to_tray.text() == "启动时隐藏到通知区域"
-    for control in (
-        panel.chk_show_tray_icon,
-        panel.chk_minimize_to_tray,
-        panel.chk_start_hidden_to_tray,
-    ):
-        assert panel.settings_page.isAncestorOf(control)
+def test_ui_slots_emit_existing_panel_contract(panel):
+    emitted = []
+    panel.mapSel.connect(lambda value: emitted.append(("map", value)))
+    panel.scaleChanged.connect(
+        lambda value: emitted.append(("scale", value))
+    )
+    panel.tnums.connect(lambda value: emitted.append(("nums", value)))
+    panel.typeToggled.connect(
+        lambda key, value: emitted.append(("type", key, value))
+    )
+
+    panel.selectMap(1)
+    panel.adjustScale(0.05)
+    panel.setNumberSwitchFromUi(True)
+    panel.setTypeEnabledFromUi("spawns", True)
+
+    assert emitted == [
+        ("map", "Lawson Delta"),
+        ("scale", pytest.approx(1.05)),
+        ("nums", True),
+        ("type", "spawns", True),
+    ]
+
+
+@pytest.mark.unit
+def test_type_state_and_settings_remain_separate(panel):
+    panel.setTypeState("spawns", True, QtGui.QColor("#123456"))
+    panel.setUserPoisEnabled(False)
+    panel.setMinimizeToTrayEnabled(True)
+    panel.setStartHiddenToTrayEnabled(True)
+    panel.setHoldTabModeEnabled(True)
+    panel.setBlockShiftTabEnabled(True)
+    panel.setPanelFollowTabEnabled(True)
+
+    spawns = next(
+        item for item in panel.typeItems if item["key"] == "spawns"
+    )
+    assert spawns["enabled"] is True
+    assert spawns["fill"] == "#123456"
+    assert panel.userPoisEnabled is False
+    assert panel.minimizeToTrayEnabled is True
+    assert panel.startHiddenToTrayEnabled is True
+    assert panel.holdTabModeEnabled is True
+    assert panel.blockShiftTabEnabled is True
+    assert panel.panelFollowTabEnabled is True
 
 
 @pytest.mark.unit

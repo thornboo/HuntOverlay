@@ -193,7 +193,7 @@ class Overlay(QtWidgets.QWidget):
         self.panel.requestOpenDataDir.connect(self._open_data_dir)
 
         # Seed GUI with current state.
-        self.panel.chk_nums.setChecked(self.num_sw)
+        self.panel.setNumberSwitchEnabled(self.num_sw)
         self.panel.setMap(self.prof)
         for k in self.type_order:
             self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
@@ -423,7 +423,7 @@ class Overlay(QtWidgets.QWidget):
         self.language = str(code)
         self._save()
         try:
-            self.panel.lbl_lang_hint.setVisible(True)
+            self.panel.setLanguageHintVisible(True)
         except Exception:
             pass
 
@@ -875,7 +875,7 @@ class Overlay(QtWidgets.QWidget):
 
     def _force_data_refresh(self):
         self.panel.setLastUpdateText(tr("Data: updating..."))
-        self.panel.btn_force_refresh.setEnabled(False)
+        self.panel.setForceRefreshEnabled(False)
         t = threading.Thread(target=self._run_data_update, daemon=True)
         t.start()
 
@@ -1114,7 +1114,7 @@ class Overlay(QtWidgets.QWidget):
             except Exception:
                 pass
         self.panel.setLastUpdateText(format_last_update(ts if ts else load_update_meta().get("last_check", "")))
-        self.panel.btn_force_refresh.setEnabled(True)
+        self.panel.setForceRefreshEnabled(True)
 
     def _build_type_specs(self):
         specs = {}
@@ -1426,14 +1426,15 @@ class Overlay(QtWidgets.QWidget):
         self._apply_rect()
 
         # Push state back into GUI widgets.
-        self.panel.chk_nums.setChecked(self.num_sw)
-        self.panel.chk_show_tray_icon.setChecked(self.show_tray_icon)
-        self.panel.chk_minimize_to_tray.setChecked(self.minimize_to_tray)
-        self.panel.chk_start_hidden_to_tray.setChecked(self.start_hidden_to_tray)
-        self.panel.chk_hold_tab.setChecked(self.hold_tab_mode)
-        self.panel.chk_block_shift_tab.setChecked(self.block_shift_tab)
-        self.panel.chk_user_pois.setChecked(self.show_user_pois)
-        self.panel.scale_box.setValue(float(self.global_scale))
+        self.panel.setNumberSwitchEnabled(self.num_sw)
+        self.panel.setTrayIconEnabled(self.show_tray_icon)
+        self.panel.setMinimizeToTrayEnabled(self.minimize_to_tray)
+        self.panel.setStartHiddenToTrayEnabled(self.start_hidden_to_tray)
+        self.panel.setHoldTabModeEnabled(self.hold_tab_mode)
+        self.panel.setBlockShiftTabEnabled(self.block_shift_tab)
+        self.panel.setPanelFollowTabEnabled(self.panel_follow_tab)
+        self.panel.setUserPoisEnabled(self.show_user_pois)
+        self.panel.setScale(float(self.global_scale))
         self.panel.setMap(self.prof)
         self._refresh_custom_poi_counts()
 
@@ -1463,7 +1464,7 @@ class Overlay(QtWidgets.QWidget):
             self.cache[m] = self._build_points_for_map(m)
 
     def _refresh_custom_poi_counts(self):
-        category = str(self.panel.cmb_poi_type.currentData() or "")
+        category = self.panel.currentPoiType()
         current = user_data.count_points(self.user_pois, self.prof, category)
         total = user_data.count_points(self.user_pois)
         self.panel.setCustomPoiCounts(current, total)

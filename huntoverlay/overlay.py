@@ -42,7 +42,7 @@ from . import images as _images
 from .qt_adapters import q2rgb, rgb2q, qcolor_from_any, screenWH
 from .win32 import key, topmost, click_through, set_mouse_transparent
 from .runtime import ICON, CONFIG_PATH, META_PATH, USER_POIS_PATH, IMG_CACHE_DIR, data_path, style_path
-from .widgets.panel import Panel
+from .widgets.panel import Panel, centered_window_position
 from .widgets.dialogs import KeyCaptureDialog
 from .widgets.poi_editor import PoiEditorDialog
 from . import user_data
@@ -199,7 +199,7 @@ class Overlay(QtWidgets.QWidget):
             self.panel.setTypeState(k, self.types[k]["enabled"], rgb2q(self.types[k]["color"], self.type_specs[k]["default_fill"]))
         self._refresh_custom_poi_counts()
 
-        self._position_panel_top_right()
+        self._position_panel_center()
 
         # System tray setup.
         self.tray = None
@@ -275,7 +275,7 @@ class Overlay(QtWidgets.QWidget):
             self.panel.hide()
         else:
             self.panel.show()
-            self._position_panel_top_right()
+            self._position_panel_center()
         # Timer tick drives input polling and hover updates.
         self.t = QtCore.QTimer(self)
         self.t.timeout.connect(self._tick_safe)
@@ -358,7 +358,7 @@ class Overlay(QtWidgets.QWidget):
 
     def _restore_panel_from_tray(self):
         self.panel.showNormal()
-        self._position_panel_top_right()
+        self._position_panel_center()
         self.panel.raise_()
         self.panel.activateWindow()
 
@@ -389,7 +389,7 @@ class Overlay(QtWidgets.QWidget):
             self._sync_panel_visibility()
         elif not self.minimize_to_tray:
             self.panel.show()
-            self._position_panel_top_right()
+            self._position_panel_center()
         self._save()
 
     def _sync_panel_visibility(self):
@@ -401,7 +401,7 @@ class Overlay(QtWidgets.QWidget):
             return
         if self.visible:
             self.panel.show()
-            self._position_panel_top_right()
+            self._position_panel_center()
         else:
             self.panel.hide()
 
@@ -1336,29 +1336,29 @@ class Overlay(QtWidgets.QWidget):
             max(1, int(rr["rh"] * H))
         )
     
-    def _position_panel_top_right(self):
-        """Place the control panel against the top-right corner.
-
-        Top-right keeps it clear of the central overlay marker band and of
-        the game's trait/skill info (shown lower-right). Uses availableGeometry
-        so the Windows taskbar is respected.
-        """
+    def _position_panel_center(self):
+        """Center the control center inside the primary usable screen."""
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen is None:
             self.panel.move(40, 40)
             return
 
-        # Ensure the panel has computed its real size before we measure it.
-        self.panel.adjustSize()
         avail = screen.availableGeometry()
         margin = 24
-        pw = self.panel.frameGeometry().width()
-
-        x = avail.right() - pw - margin
-        y = avail.top() + margin
-        # Never let the panel run off the left edge on small screens.
-        x = max(avail.left() + margin, x)
-        self.panel.move(int(x), int(y))
+        max_width = max(1, avail.width() - margin * 2)
+        max_height = max(1, avail.height() - margin * 2)
+        if self.panel.width() > max_width or self.panel.height() > max_height:
+            self.panel.resize(
+                min(self.panel.width(), max_width),
+                min(self.panel.height(), max_height),
+            )
+        self.panel.move(
+            centered_window_position(
+                avail,
+                self.panel.frameGeometry().size(),
+                margin,
+            )
+        )
 
     def _set_overlay_to_primary_monitor(self):
 

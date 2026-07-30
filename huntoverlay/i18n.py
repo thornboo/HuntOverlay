@@ -133,6 +133,53 @@ _UI = {
         "Hide All POIs": "全部隐藏",
         "Custom POIs:": "自定义点位：",
         "Tools:": "工具：",
+        # Panel — Control center shell
+        "Control Center": "控制中心",
+        "Map & Tools": "地图与工具",
+        "Official POIs": "官方点位",
+        "Boss Reference": "首领资料",
+        "Data Status": "数据状态",
+        "Map controls, custom POIs and measurement.":
+            "地图控制、自定义点位与测量工具。",
+        "Visibility and marker colors for official data.":
+            "控制官方数据的显示与标记颜色。",
+        "Combat resistances and practical notes.":
+            "查看首领抗性与实战提示。",
+        "Keybinds, overlay behavior and application recovery.":
+            "管理快捷键、覆盖层行为与应用恢复。",
+        # Panel — Control center cards
+        "Map Controls": "地图控制",
+        "Choose the active map and marker scale.":
+            "选择当前地图并调整标记缩放。",
+        "Decrease marker scale": "减小标记缩放",
+        "Increase marker scale": "增大标记缩放",
+        "Official Visibility": "官方点位显示",
+        "Show or hide the complete official POI layer.":
+            "快速显示或隐藏全部官方点位。",
+        "Official categories available: {count}":
+            "可配置的官方分类：{count}",
+        "Custom POIs": "自定义点位",
+        "Create local markers without changing official data.":
+            "创建本地点位，不修改官方数据。",
+        "Measurement": "测量工具",
+        "Measure distances or clear stored rulers.":
+            "测量地图距离或清除已有标尺。",
+        "Choose Ruler, then click two points on the map.":
+            "启动标尺后，在地图上依次点击两个点。",
+        "Official Filters": "官方点位筛选",
+        "Toggle categories and tune their marker colors.":
+            "切换点位分类并调整标记颜色。",
+        "Keep common overlay actions within easy reach.":
+            "集中管理常用覆盖层操作。",
+        "Overlay Behavior": "覆盖层行为",
+        "Choose how the overlay and control center appear during play.":
+            "设置游戏中覆盖层与控制中心的显示方式。",
+        "Application": "应用",
+        "Language and notification-area behavior.":
+            "管理语言与通知区域行为。",
+        "Data & Storage": "数据与存储",
+        "Inspect local storage or restore the default configuration.":
+            "查看本地存储或恢复默认配置。",
         # Panel — Keybinds tab
         "Set": "设置",
         "Keybinds": "快捷键",

@@ -24,7 +24,7 @@ logic improvements. The original author's documentation has been folded into thi
 - Custom POI editor: a GUI to add/remove your own marker points, stored
   separately so online data refreshes never overwrite them
 - One-click select-all / deselect-all for POI categories
-- Control panel moved to the top-right edge, clear of the overlay
+- Centered, resizable landscape control center with task-focused navigation
 
 **Data & stability**
 - Refreshed bundled POI data and filled in missing category styles
@@ -82,7 +82,7 @@ Always comply with the game's Terms of Service.
 - Locally saved user configuration
 - Per-category soft-hiding of specific POIs
 - One-click select-all / deselect-all for POI categories
-- Control panel anchored to the top-right edge, clear of the overlay
+- Centered, resizable landscape control center with four focused pages
 - Can be packaged as a portable single-file exe
 - Localized Chinese UI
 
@@ -134,6 +134,7 @@ About soft-hiding:
 
 The control panel lets you:
 
+- Move between Map & Tools, Official POIs, Boss Reference, and Settings
 - Enable or disable POI categories
 - Select all / deselect all categories in one click
 - Change category colors
@@ -142,7 +143,8 @@ The control panel lets you:
 - Adjust the global POI size scale
 - View and modify hotkeys
 
-The panel stays on top and does not interfere with gameplay.
+The panel opens centered as a resizable landscape window, stays on top, and
+keeps the transparent map overlay separate from configuration tasks.
 
 ## Global POI Scaling
 

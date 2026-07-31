@@ -28,6 +28,20 @@ Tauri 构建配置。不要在本目录再次执行 `git init`。
 现有 `huntoverlay/`、Python 测试、PyInstaller 脚本和发布流程不应因本
 PoC 发生变化。
 
+## 执行边界
+
+当前项目约定如下：
+
+- macOS 只用于编辑本目录源码、维护文档和执行必要的 Git 操作
+- 不在 macOS 安装本 PoC 依赖、编译、启动、截图或添加 Windows Rust target
+- 依赖安装、编译、启动和实际窗口验证全部在 Windows 测试机完成
+- Windows/Hunt 验证通过前，不修改现有 Python/PySide6 正式实现
+
+后续开发开始前先阅读：
+
+- [架构与接口说明](docs/ARCHITECTURE.md)
+- [Windows 验证记录](docs/WINDOWS-VALIDATION.md)
+
 ## 开发环境
 
 - Node.js 20 或更新版本
@@ -40,7 +54,7 @@ Windows 还需要：
 - Microsoft C++ Build Tools（Desktop development with C++）
 - WebView2 Runtime
 
-## 安装与静态验证
+## 安装与静态验证（Windows 测试机）
 
 ```bash
 cd Tauri-PoC
@@ -50,7 +64,7 @@ pnpm build
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-## 启动
+## 启动（Windows 测试机）
 
 ```bash
 cd Tauri-PoC

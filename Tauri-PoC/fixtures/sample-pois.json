@@ -1,0 +1,20 @@
+{
+  "map": "Stillwater Bayou",
+  "aspect": "16:9",
+  "points": [
+    { "id": "spawn-01", "category": "spawn", "u": 0.105, "v": 0.164, "label": "Northwest spawn" },
+    { "id": "spawn-02", "category": "spawn", "u": 0.845, "v": 0.128, "label": "Northeast spawn" },
+    { "id": "spawn-03", "category": "spawn", "u": 0.905, "v": 0.745, "label": "Southeast spawn" },
+    { "id": "spawn-04", "category": "spawn", "u": 0.142, "v": 0.824, "label": "Southwest spawn" },
+    { "id": "armory-01", "category": "armory", "u": 0.264, "v": 0.302, "label": "Darrow cache" },
+    { "id": "armory-02", "category": "armory", "u": 0.692, "v": 0.243, "label": "Blanchett cache" },
+    { "id": "armory-03", "category": "armory", "u": 0.626, "v": 0.704, "label": "Pitching cache" },
+    { "id": "tower-01", "category": "tower", "u": 0.456, "v": 0.181, "label": "Northern tower" },
+    { "id": "tower-02", "category": "tower", "u": 0.807, "v": 0.482, "label": "Eastern tower" },
+    { "id": "tower-03", "category": "tower", "u": 0.364, "v": 0.732, "label": "Southern tower" },
+    { "id": "workbench-01", "category": "workbench", "u": 0.382, "v": 0.423, "label": "Workshop A" },
+    { "id": "workbench-02", "category": "workbench", "u": 0.552, "v": 0.538, "label": "Workshop B" },
+    { "id": "workbench-03", "category": "workbench", "u": 0.731, "v": 0.616, "label": "Workshop C" },
+    { "id": "workbench-04", "category": "workbench", "u": 0.212, "v": 0.572, "label": "Workshop D" }
+  ]
+}

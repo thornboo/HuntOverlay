@@ -104,10 +104,12 @@ Rust 入口位于 `src-tauri/src/lib.rs`：
 | 模式 | 窗口行为 | 前端行为 |
 | --- | --- | --- |
 | `passthrough` | `set_ignore_cursor_events(true)` | 不显示光标十字线，不处理 Canvas 点击 |
-| `pick` | `set_ignore_cursor_events(false)` | 点击位置显示拾取脉冲 |
-| `ruler` | `set_ignore_cursor_events(false)` | 连续选择两点并显示像素距离 |
+| `pick` | `set_ignore_cursor_events(false)` | 点击位置显示拾取脉冲；按钮、右键或全局 `Esc` 退出 |
+| `ruler` | `set_ignore_cursor_events(false)` | 连续选择两点并显示像素距离；按钮、右键或全局 `Esc` 退出 |
 
-这些状态目前只存在内存中，应用退出后不会持久化。
+这些状态目前只存在内存中，应用退出后不会持久化。隐藏覆盖层时会强制恢复
+`passthrough`，离开交互模式时会清理拾取脉冲和临时尺子，避免全屏置顶窗口
+持续拦截鼠标或遗留测试图形。
 
 ## 前后端 Command 契约
 
@@ -152,12 +154,19 @@ Rust 使用 `#[serde(rename_all = "camelCase")]` 与 TypeScript 字段命名保�
 `OverlayApp` 使用 Canvas 2D，而不是为每个点位创建 DOM 元素：
 
 - fixture 数据来自 `fixtures/sample-pois.json`。
-- 点位使用归一化 `u/v` 坐标映射到当前窗口中的测试边界。
+- 点位使用归一化 `u/v` 坐标映射到当前 Python 实现相同的默认地图矩形；
+  `16:9`、`21:9` 和 `32:9` 分别使用 `huntoverlay.geometry` 中的比例。
+- 测试分类的默认半径沿用当前 Python 实现换算后的值：出生点 `9px`、军械库和
+  塔楼 `5px`、工作台 `3px`。
 - Canvas 内部分辨率乘以 `window.devicePixelRatio`，CSS 尺寸保持逻辑像素。
 - 窗口缩放时重新适配画布并重绘。
 - `pick` 模式显示点击脉冲和坐标十字线。
 - `ruler` 模式保存两个逻辑像素坐标，并显示直线距离。
-- `passthrough` 模式清空指针位置，避免遗留交互提示。
+- `passthrough` 模式清空指针位置和临时交互图形，避免遗留提示。
+
+`scripts/check-overlay-geometry.mjs` 锁定上述宽高比和分类半径，并由 Windows
+bootstrap 在 TypeScript 检查后执行，防止 PoC 再次退回与当前实现无关的测试
+几何。
 
 当前点位、地图名和距离单位都只是技术 fixture，不代表正式 Hunt 数据模型。
 

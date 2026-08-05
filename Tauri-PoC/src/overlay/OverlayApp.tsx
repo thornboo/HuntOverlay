@@ -8,6 +8,7 @@ import type {
   OverlayMode,
   OverlaySnapshot,
 } from "../types";
+import { getMapBounds, getMarkerRadius } from "./geometry";
 
 type Point = { x: number; y: number };
 
@@ -78,12 +79,7 @@ function drawScene(canvas: HTMLCanvasElement, state: RenderState) {
   const { width, height } = fitCanvas(canvas);
   context.clearRect(0, 0, width, height);
 
-  const bounds = {
-    left: width * 0.075,
-    top: height * 0.08,
-    width: width * 0.85,
-    height: height * 0.84,
-  };
+  const bounds = getMapBounds(width, height);
 
   context.save();
   context.strokeStyle = "rgba(112, 214, 255, 0.22)";
@@ -95,23 +91,18 @@ function drawScene(canvas: HTMLCanvasElement, state: RenderState) {
   for (const point of sample.points) {
     const x = bounds.left + point.u * bounds.width;
     const y = bounds.top + point.v * bounds.height;
+    const radius = getMarkerRadius(point.category);
     const style = categoryStyle[point.category];
 
     context.save();
     context.shadowColor = style.fill;
-    context.shadowBlur = 14;
+    context.shadowBlur = 8;
     context.fillStyle = style.fill;
-    context.strokeStyle = "rgba(3, 10, 14, 0.88)";
-    context.lineWidth = 3;
-    context.beginPath();
-    context.arc(x, y, 7, 0, Math.PI * 2);
-    context.fill();
-    context.stroke();
-    context.shadowBlur = 0;
     context.strokeStyle = style.stroke;
-    context.lineWidth = 1;
+    context.lineWidth = 2;
     context.beginPath();
-    context.arc(x, y, 10, 0, Math.PI * 2);
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
     context.stroke();
     context.restore();
   }
@@ -215,6 +206,13 @@ export function OverlayApp() {
     const applySnapshot = (snapshot: OverlaySnapshot) => {
       const nextMode = snapshot.mode;
       renderStateRef.current.mode = nextMode;
+      if (nextMode !== "pick") {
+        renderStateRef.current.pickPulse = null;
+      }
+      if (nextMode !== "ruler") {
+        renderStateRef.current.rulerStart = null;
+        renderStateRef.current.rulerEnd = null;
+      }
       if (nextMode === "passthrough") {
         renderStateRef.current.cursor = null;
       }
@@ -268,6 +266,14 @@ export function OverlayApp() {
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (event.button === 2) {
+      void invoke("set_overlay_mode", { mode: "passthrough" });
+      return;
+    }
+    if (event.button !== 0) {
+      return;
+    }
+
     const point = { x: event.clientX, y: event.clientY };
     if (mode === "pick") {
       renderStateRef.current.pickPulse = point;
@@ -285,6 +291,9 @@ export function OverlayApp() {
     redraw();
   };
 
+  const exitInteractionMode = () =>
+    invoke("set_overlay_mode", { mode: "passthrough" });
+
   return (
     <main className={`overlay-shell mode-${mode}`}>
       <canvas
@@ -292,6 +301,7 @@ export function OverlayApp() {
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
         onPointerDown={handlePointerDown}
+        onContextMenu={(event) => event.preventDefault()}
         aria-label="HuntOverlay Tauri 覆盖层原型"
       />
       <div className="overlay-readout" aria-hidden="true">
@@ -302,10 +312,20 @@ export function OverlayApp() {
         </small>
       </div>
       {mode !== "passthrough" ? (
-        <div className="interaction-note" aria-hidden="true">
-          {mode === "pick"
-            ? "点击任意位置验证点位拾取"
-            : "依次点击两个位置验证尺子"}
+        <div className="interaction-tools">
+          <span className="interaction-note">
+            {mode === "pick"
+              ? "点击任意位置验证点位拾取"
+              : "依次点击两个位置验证尺子"}
+          </span>
+          <button
+            className="interaction-exit"
+            type="button"
+            onClick={() => void exitInteractionMode()}
+          >
+            退出交互
+            <kbd>ESC / 右键</kbd>
+          </button>
         </div>
       ) : null}
     </main>

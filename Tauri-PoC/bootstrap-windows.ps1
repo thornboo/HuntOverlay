@@ -349,6 +349,10 @@ try {
             -Arguments @("pnpm", "check")
 
         Invoke-WithMiseNode `
+            -Label "Verify overlay geometry against the current HuntOverlay defaults" `
+            -Arguments @("pnpm", "check:geometry")
+
+        Invoke-WithMiseNode `
             -Label "Build the Vite frontend" `
             -Arguments @("pnpm", "build")
 

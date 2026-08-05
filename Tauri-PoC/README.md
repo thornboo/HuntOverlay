@@ -73,7 +73,7 @@ BAT 是双击入口，会调用同目录下的 PowerShell 脚本，并在成功�
 
 - 检测并按需安装 Visual Studio 2022 C++ Build Tools 与 WebView2 Runtime
 - 通过 `mise` 临时使用 Node.js 24、Rust stable MSVC 和 pnpm 11.17.0
-- 执行锁文件安装、TypeScript 检查、Vite 构建、`cargo check --locked`
+- 执行锁文件安装、TypeScript 与覆盖层几何检查、Vite 构建、`cargo check --locked`
 - 执行 `pnpm tauri build --no-bundle --ci`，生成 Windows release exe
 
 需要在编译通过后立即启动 PoC 做窗口验证时使用：

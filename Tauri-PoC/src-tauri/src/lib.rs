@@ -114,6 +114,32 @@ fn emit_snapshot(app: &AppHandle, state: &RuntimeState) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+fn apply_overlay_mode(
+    app: &AppHandle,
+    state: &RuntimeState,
+    mode: OverlayMode,
+) -> Result<(), String> {
+    overlay_window(app)?
+        .set_ignore_cursor_events(matches!(mode, OverlayMode::Passthrough))
+        .map_err(|error| error.to_string())?;
+
+    *state
+        .mode
+        .lock()
+        .map_err(|_| "overlay mode state is poisoned".to_string())? = mode;
+
+    Ok(())
+}
+
+fn set_overlay_mode_internal(
+    app: &AppHandle,
+    state: &RuntimeState,
+    mode: OverlayMode,
+) -> Result<(), String> {
+    apply_overlay_mode(app, state, mode)?;
+    emit_snapshot(app, state)
+}
+
 fn set_overlay_visible_internal(
     app: &AppHandle,
     state: &RuntimeState,
@@ -125,6 +151,7 @@ fn set_overlay_visible_internal(
         sync_window_to_primary(&window)?;
         window.show().map_err(|error| error.to_string())?;
     } else {
+        apply_overlay_mode(app, state, OverlayMode::Passthrough)?;
         window.hide().map_err(|error| error.to_string())?;
     }
 
@@ -161,19 +188,7 @@ fn set_overlay_mode(
     state: State<'_, RuntimeState>,
     mode: OverlayMode,
 ) -> Result<(), String> {
-    let window = overlay_window(&app)?;
-    let ignore_cursor = matches!(mode, OverlayMode::Passthrough);
-
-    window
-        .set_ignore_cursor_events(ignore_cursor)
-        .map_err(|error| error.to_string())?;
-
-    *state
-        .mode
-        .lock()
-        .map_err(|_| "overlay mode state is poisoned".to_string())? = mode;
-
-    emit_snapshot(&app, &state)
+    set_overlay_mode_internal(&app, &state, mode)
 }
 
 #[tauri::command]
@@ -205,12 +220,15 @@ fn key_is_down(key: windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY) ->
 
 #[cfg(windows)]
 fn start_windows_tab_polling(app: AppHandle) {
-    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_CONTROL, VK_MENU, VK_SHIFT, VK_TAB};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+        VK_CONTROL, VK_ESCAPE, VK_MENU, VK_SHIFT, VK_TAB,
+    };
 
     let _ = std::thread::Builder::new()
         .name("huntoverlay-tab-poll".to_string())
         .spawn(move || {
             let mut was_pressed = false;
+            let mut escape_was_pressed = false;
 
             loop {
                 if app.get_webview_window("control").is_none()
@@ -220,6 +238,19 @@ fn start_windows_tab_polling(app: AppHandle) {
                 }
 
                 let state = app.state::<RuntimeState>();
+                let escape_pressed = key_is_down(VK_ESCAPE);
+                if escape_pressed && !escape_was_pressed {
+                    let is_interactive = state
+                        .mode
+                        .lock()
+                        .map(|mode| !matches!(*mode, OverlayMode::Passthrough))
+                        .unwrap_or(false);
+                    if is_interactive {
+                        let _ = set_overlay_mode_internal(&app, &state, OverlayMode::Passthrough);
+                    }
+                }
+                escape_was_pressed = escape_pressed;
+
                 let enabled = state.hold_tab_enabled.load(Ordering::SeqCst);
                 let pressed = enabled
                     && key_is_down(VK_TAB)

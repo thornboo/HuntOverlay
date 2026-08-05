@@ -22,12 +22,12 @@ const modeCopy: Record<
   },
   pick: {
     title: "拾取",
-    description: "覆盖层接管单击并预览坐标",
+    description: "覆盖层接管单击；右键或 Esc 退出",
     command: "PICK",
   },
   ruler: {
     title: "尺子",
-    description: "连续选取两点并显示距离",
+    description: "连续选取两点；右键或 Esc 退出",
     command: "RULER",
   },
 };

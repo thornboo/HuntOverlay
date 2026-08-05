@@ -1,290 +1,78 @@
-# HuntOverlay
+# PACTUM
+
+**Pactum · 契印**
 
 > English | [简体中文](README.zh-CN.md)
 
-A lightweight, real-time Windows map overlay that displays Hunt: Showdown POI
-markers on screen. It runs as a standalone window with click-through, per-category
-POI configuration, and locally persisted settings, and never modifies game files.
+An unofficial desktop companion for **Hunt: Showdown 1896**.
 
-This is a fork of [HuntOverlay-by-sKhaled](https://github.com/uzpj/HuntOverlay-by-sKhaled),
-focused on Chinese localization, portable Windows builds, and ongoing feature and
-logic improvements. The original author's documentation has been folded into this README.
+Pactum is a community-built, Windows-first application for map awareness,
+points of interest, reference information, and focused utilities that support
+the hunt without modifying the game. The project is being rebuilt from the
+ground up with Tauri.
 
----
+The name reflects the contracts, pacts, marks, and consequences at the heart
+of every hunt. **Pactum** is the product name; **PACTUM** is its visual wordmark;
+**契印** is its Chinese name.
 
-## Changes in This Fork
+## Project Status
 
-**Localization / multi-language**
-- Fully localized Chinese UI (panel, dialogs, tray menu)
-- A proper multi-language layer (Chinese / English) with a language selector
-  in Settings (applies on restart)
-- Corrected map name translations
+Pactum is currently at the beginning of its Tauri rewrite. The active branches
+have intentionally been reduced to a clean foundation, and production
+application code has not been added yet.
 
-**New features**
-- Custom POI editor: a GUI to add/remove your own marker points, stored
-  separately so online data refreshes never overwrite them
-- One-click select-all / deselect-all for POI categories
-- Centered, resizable landscape control center with task-focused navigation
+The earlier Tauri proof of concept established that the Windows overlay approach
+is technically viable. The production implementation will now be designed as
+Pactum rather than carried forward as a renamed prototype.
 
-**Data & stability**
-- Refreshed bundled POI data and filled in missing category styles
-- Update-check interval shortened from 24h to 6h to reduce stale points
+## Direction
 
-**Engineering (for developers)**
-- Single-file script refactored into a layered Python package (core logic /
-  widgets / platform glue separated)
-- Unit tests added for the core logic
-- One-click Windows build script; fixed encoding issues under Chinese locale
+Pactum is intended to grow as a coherent companion rather than a collection of
+unrelated tools. Its initial direction includes:
 
----
+- Windows overlay and map-related assistance
+- Official and custom point-of-interest workflows
+- Hunt reference information presented alongside practical utilities
+- Local-first settings and user data
+- A modular foundation for carefully selected future features
 
-## Safety Notice
+The implementation will be based on Tauri, with Rust handling native desktop
+responsibilities and a focused web frontend providing the interface.
 
-The only official repository of the original Hunt Map Overlay by sKhaled is:
+## Principles
 
-https://github.com/uzpj/HuntOverlay-by-sKhaled
+- **Windows first:** runtime behavior is designed and validated on Windows.
+- **Non-invasive:** Pactum must not modify game files, inject into the game
+  process, or read or alter game memory.
+- **Local first:** settings and personal data should remain under the user's
+  control.
+- **Purposeful scope:** new features should strengthen the companion experience
+  instead of turning the application into an unfocused toolbox.
+- **Community built:** the project is unofficial and developed independently of
+  Crytek.
 
-The original author's official builds are published solely through that repository's
-Releases page.
+## Branches
 
-If you download an executable from an unknown source, it may contain modified or
-unsafe code. Verify the source before running any executable. Treat any repository
-distributing builds with external download links or modified binaries as untrusted
-until verified.
+| Branch | Purpose |
+| --- | --- |
+| `dev` | Primary development branch for the new Tauri application |
+| `main` | Stable integration branch, updated from `dev` |
+| `legacy` | Archived PySide6 implementation preserved at commit `93b9035` |
 
 ## Disclaimer
 
-This project is not affiliated with or endorsed by Crytek.
+Pactum is an unofficial community project and is not affiliated with, endorsed
+by, or sponsored by Crytek. Hunt: Showdown 1896 and related names and assets are
+the property of their respective owners.
 
-- Use at your own risk. No warranty is provided.
-- This tool does not modify game files, nor read, inject into, or modify game memory.
-- It is intended for informational and accessibility purposes only.
+Use Pactum at your own risk and always comply with the game's applicable terms
+and policies.
 
-Always comply with the game's Terms of Service.
+## Heritage and Credits
 
-## Credits
+Pactum is the clean successor to the HuntOverlay project maintained in this
+repository. Its archived implementation was originally derived from
+[HuntOverlay-by-sKhaled](https://github.com/uzpj/HuntOverlay-by-sKhaled).
 
-- POI data provided by Kamille (https://github.com/waibcam) and the Discord community.
-- The original implementation was created by sKhaled.
-
----
-
-## Features
-
-- Real-time on-screen map overlay
-- Support for all Hunt: Showdown maps
-- Configurable POI categories
-- Enable or disable POIs per category
-- Per-category color selection
-- Global POI size scaling
-- Click-through; does not block game input
-- Hotkey-driven interaction
-- Locally saved user configuration
-- Per-category soft-hiding of specific POIs
-- One-click select-all / deselect-all for POI categories
-- Centered, resizable landscape control center with four focused pages
-- Can be packaged as a portable single-file exe
-- Localized Chinese UI
-
-## How It Works
-
-The tool loads map POI data from JSON files and projects markers into a configurable
-on-screen rectangle. Coordinates are converted from Hunt: Showdown's 4096x4096 map grid
-into normalized screen coordinates, then drawn as simple graphics balancing clarity and
-performance.
-
-It does not modify game files, inject into the game process, or hook the game. It is
-simply a standalone layered window rendered above the game window.
-
-## File Storage
-
-On first launch the program creates the following directory:
-
-```text
-%LOCALAPPDATA%\HuntOverlay\
-```
-
-It contains:
-
-- `data.json` — map POI coordinate data.
-- `poiData.json` — POI style definitions, such as radius and default colors.
-- `config.json` — user settings: enabled categories, colors, current map, hidden POIs, and global size scale.
-
-Runtime changes to these files persist across restarts and updates.
-
-## Hotkeys
-
-Overlay controls:
-
-| Hotkey | Action |
-|--------|--------|
-| Backtick `` ` `` (usually below Esc) | Toggle master switch |
-| Tab | Show or hide the overlay |
-| H | Hide the overlay |
-| 1 2 3 4 | Switch maps (once enabled in the control panel) |
-| Ctrl + Alt + Shift + Delete | Soft-hide the POI under the cursor |
-
-About soft-hiding:
-
-- Hides only that POI within its current category.
-- Does not delete the POI from the JSON data files.
-- The hidden state is saved to the config file.
-
-## Control Panel
-
-The control panel lets you:
-
-- Move between Map & Tools, Official POIs, Boss Reference, and Settings
-- Enable or disable POI categories
-- Select all / deselect all categories in one click
-- Change category colors
-- Switch maps manually
-- Enable number-key map switching
-- Adjust the global POI size scale
-- View and modify hotkeys
-
-The panel opens centered as a resizable landscape window, stays on top, and
-keeps the transparent map overlay separate from configuration tasks.
-
-## Global POI Scaling
-
-The global size scale enlarges or shrinks all POIs without editing JSON files.
-
-- Decrease/increase buttons adjust in steps
-- A numeric field sets an exact scale value
-- Scaling applies to all POI categories
-- The value is saved to the config file
-
----
-
-## Important Notes
-
-### Game Display Mode (read this)
-
-The overlay is a separate layered window drawn above the game. Windows
-**Exclusive Fullscreen** takes over the display output, so **no external
-overlay can show on top of it** — this is a Windows limitation, not a bug.
-
-In Hunt: Showdown's video settings, use one of:
-
-- **Borderless** / Borderless Windowed, or
-- **Windowed Fullscreen**
-
-so the overlay can render above the game.
-
-### POI Data
-
-POI coordinates come from a community-maintained online source. The app
-checks for updates in the background roughly every 6 hours without slowing
-startup, and the control panel has a manual refresh button for an immediate
-pull. If points don't perfectly match the game, it's usually because the
-upstream data hasn't caught up with the latest patch yet.
-
-### Multi-Monitor / High DPI
-
-The overlay auto-scales to the primary monitor's resolution. On multi-monitor
-setups with mixed DPI scaling, overlay positioning may drift — run the game on
-the primary monitor for best results.
-
----
-
-## Installation
-
-### Option 1: Prebuilt Executable
-
-1. Download the released executable
-2. Run it
-3. On first launch the program creates the files it needs
-4. Start Hunt: Showdown and press a hotkey to open the overlay
-
-### Option 2: Run from Source
-
-Requirements:
-
-- Python 3.10 – 3.13
-- PySide6
-
-Install dependencies and run:
-
-```bash
-pip install pyside6
-python HuntOverlay.py
-```
-
----
-
-## Building an Executable
-
-Build on a native Windows environment. Do not package a Windows exe from WSL.
-
-The project ships a one-click build script, `build_windows.bat`. Double-click it to run
-(no administrator rights required, but Python 3.10–3.13 must be installed first). The
-script checks for required files, creates or reuses `.venv`, installs pinned versions of
-`PySide6` and `pyinstaller`, then packages the app. It prefers an existing virtual
-environment; otherwise it searches for a usable Python from 3.13 down to 3.10 (the Windows
-`py` launcher or a mise-installed version).
-
-### Usage
-
-```bat
-build_windows.bat                       :: onedir (default)
-build_windows.bat onefile               :: single-file portable build
-build_windows.bat both                  :: build both
-build_windows.bat both clean            :: purge stale caches first
-build_windows.bat onedir clean nopause  :: automation; skip the final pause
-```
-
-Optional flags:
-
-- `clean` — remove `build\`, `dist\`, and `*.spec` before building, so PyInstaller does not reuse a stale cache.
-- `nopause` — do not wait for a keypress at the end; useful for automation/CI.
-
-### Output Paths
-
-- Onedir: `dist\HuntOverlay\HuntOverlay.exe`
-- Single-file: `dist\HuntOverlay-portable.exe`
-
-> The onedir and single-file builds use distinct names, so `both` mode never overwrites
-> one with the other. The single-file build unpacks to a temp directory on first launch,
-> causing a few seconds of black screen — this is expected; prefer the onedir build for
-> instant startup.
-
-### Custom Python
-
-If auto-discovery cannot find a suitable Python, point an environment variable at `python.exe`:
-
-```powershell
-$env:HUNTOVERLAY_PYTHON = "C:\Path\to\python.exe"
-.\build_windows.bat
-```
-
-### Manual Build
-
-Without the script, you can package the single-file build manually:
-
-```powershell
-py -m PyInstaller --noconfirm --onefile --windowed --name HuntOverlay-portable --icon myicon.ico --add-data "data.json;." --add-data "poiData.json;." --add-data "myicon.ico;." HuntOverlay.py
-```
-
-Output: `dist\HuntOverlay-portable.exe`.
-
-## Windows SmartScreen Warning
-
-Because the app is unsigned, Windows may show a SmartScreen warning on first run. This is
-normal for unsigned executables. Click **More info** → **Run anyway**.
-
-To remove the warning permanently, the executable must be code-signed with a trusted
-certificate. This project does not currently provide code signing.
-
-## License
-
-MIT License. You may use, modify, redistribute, or integrate it into other projects,
-provided you retain the original attribution and the license. See the `LICENSE` file for
-full terms.
-
-## Authors and Acknowledgments
-
-- Original author: sKhaled ([HuntOverlay-by-sKhaled](https://github.com/uzpj/HuntOverlay-by-sKhaled))
-- This fork: Chinese localization and feature extensions on top of the original project.
-
-Contributions, improvements, and forks are welcome.
+- Original overlay implementation: sKhaled
+- Community POI data: Kamille and the Hunt community

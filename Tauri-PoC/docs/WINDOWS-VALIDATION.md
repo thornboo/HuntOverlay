@@ -82,14 +82,28 @@ rustup show active-toolchain
 
 ## 安装与构建记录
 
-在 Windows PowerShell 中执行：
+在仓库根目录的 Windows PowerShell 中执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Tauri-PoC\bootstrap-windows.ps1 -InstallSystemDependencies
+```
+
+如果从 `Tauri-PoC` 目录执行，则使用：
+
+```powershell
+.\bootstrap-windows.ps1 -InstallSystemDependencies
+```
+
+脚本成功后仍需单独完成下文的窗口、输入、Hunt 和性能实机验证。手工排错时可以
+逐项执行与脚本等价的基础命令：
 
 ```powershell
 cd Tauri-PoC
 pnpm install --frozen-lockfile
 pnpm check
 pnpm build
-cargo check --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml --locked
+pnpm tauri build --no-bundle --ci
 ```
 
 记录结果：
@@ -99,7 +113,8 @@ cargo check --manifest-path src-tauri/Cargo.toml
 | `pnpm install --frozen-lockfile` | 待验证 | 待填写 | 待填写 |
 | `pnpm check` | 待验证 | 待填写 | 待填写 |
 | `pnpm build` | 待验证 | 待填写 | 待填写 |
-| `cargo check --manifest-path src-tauri/Cargo.toml` | 待验证 | 待填写 | 待填写 |
+| `cargo check --manifest-path src-tauri/Cargo.toml --locked` | 待验证 | 待填写 | 待填写 |
+| `pnpm tauri build --no-bundle --ci` | 待验证 | 待填写 | 待填写 |
 
 若失败，保留第一处真实错误和完整复现命令。不要在未解释失败原因前连续尝试无关
 修复，也不要把 macOS 结果当作 Windows 通过证据。

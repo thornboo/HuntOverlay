@@ -54,14 +54,45 @@ Windows 还需要：
 - Microsoft C++ Build Tools（Desktop development with C++）
 - WebView2 Runtime
 
+## Windows 一键准备与编译验证
+
+Windows 测试机已经安装 `mise` 时，可以从仓库根目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Tauri-PoC\bootstrap-windows.ps1 -InstallSystemDependencies
+```
+
+脚本会：
+
+- 检测并按需安装 Visual Studio 2022 C++ Build Tools 与 WebView2 Runtime
+- 通过 `mise` 临时使用 Node.js 24、Rust stable MSVC 和 pnpm 11.17.0
+- 执行锁文件安装、TypeScript 检查、Vite 构建、`cargo check --locked`
+- 执行 `pnpm tauri build --no-bundle --ci`，生成 Windows release exe
+
+已经安装过系统依赖后，后续只需：
+
+```powershell
+.\Tauri-PoC\bootstrap-windows.ps1
+```
+
+需要在编译通过后立即启动 PoC 做窗口验证时使用：
+
+```powershell
+.\Tauri-PoC\bootstrap-windows.ps1 -RunDev
+```
+
+脚本不写入仓库或全局 `mise` 配置，因此以后可以直接删除。删除脚本不会卸载
+Visual Studio Build Tools、WebView2 或 `mise` 已下载的工具版本；这些组件可能仍被
+其他项目使用，不应自动清理。
+
 ## 安装与静态验证（Windows 测试机）
 
 ```bash
 cd Tauri-PoC
-pnpm install
+pnpm install --frozen-lockfile
 pnpm check
 pnpm build
-cargo check --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml --locked
 ```
 
 ## 启动（Windows 测试机）

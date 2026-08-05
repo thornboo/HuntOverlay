@@ -85,17 +85,26 @@ rustup show active-toolchain
 在仓库根目录的 Windows PowerShell 中执行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\Tauri-PoC\bootstrap-windows.ps1 -InstallSystemDependencies
+.\Tauri-PoC\bootstrap-windows.bat
 ```
 
-如果从 `Tauri-PoC` 目录执行，则使用：
+也可以直接双击 `Tauri-PoC\bootstrap-windows.bat`。BAT 会自动传入系统依赖安装
+开关，并在成功或失败后暂停，确保第一处真实错误仍然可见。
+
+如果从 `Tauri-PoC` 目录的 PowerShell 或命令提示符执行，则使用：
 
 ```powershell
-.\bootstrap-windows.ps1 -InstallSystemDependencies
+.\bootstrap-windows.bat
 ```
 
-脚本成功后仍需单独完成下文的窗口、输入、Hunt 和性能实机验证。手工排错时可以
-逐项执行与脚本等价的基础命令：
+需要在编译后立即启动 PoC 时使用：
+
+```powershell
+.\Tauri-PoC\bootstrap-windows.bat -RunDev
+```
+
+入口成功后仍需单独完成下文的窗口、输入、Hunt 和性能实机验证。手工排错时可以
+逐项执行与 PowerShell 实现等价的基础命令：
 
 ```powershell
 cd Tauri-PoC

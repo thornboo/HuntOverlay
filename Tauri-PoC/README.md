@@ -56,34 +56,41 @@ Windows 还需要：
 
 ## Windows 一键准备与编译验证
 
-Windows 测试机已经安装 `mise` 时，可以从仓库根目录运行：
+Windows 测试机已经安装 `mise` 时，推荐直接双击：
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\Tauri-PoC\bootstrap-windows.ps1 -InstallSystemDependencies
+```text
+Tauri-PoC\bootstrap-windows.bat
 ```
 
-脚本会：
+也可以从仓库根目录的 PowerShell 或命令提示符运行：
+
+```powershell
+.\Tauri-PoC\bootstrap-windows.bat
+```
+
+BAT 是双击入口，会调用同目录下的 PowerShell 脚本，并在成功或失败后暂停，避免
+控制台窗口关闭过快而看不到错误。实际流程会：
 
 - 检测并按需安装 Visual Studio 2022 C++ Build Tools 与 WebView2 Runtime
 - 通过 `mise` 临时使用 Node.js 24、Rust stable MSVC 和 pnpm 11.17.0
 - 执行锁文件安装、TypeScript 检查、Vite 构建、`cargo check --locked`
 - 执行 `pnpm tauri build --no-bundle --ci`，生成 Windows release exe
 
-已经安装过系统依赖后，后续只需：
-
-```powershell
-.\Tauri-PoC\bootstrap-windows.ps1
-```
-
 需要在编译通过后立即启动 PoC 做窗口验证时使用：
 
 ```powershell
-.\Tauri-PoC\bootstrap-windows.ps1 -RunDev
+.\Tauri-PoC\bootstrap-windows.bat -RunDev
 ```
 
-脚本不写入仓库或全局 `mise` 配置，因此以后可以直接删除。删除脚本不会卸载
-Visual Studio Build Tools、WebView2 或 `mise` 已下载的工具版本；这些组件可能仍被
-其他项目使用，不应自动清理。
+手工排错或不需要暂停窗口时，仍可直接调用 PowerShell 实现：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Tauri-PoC\bootstrap-windows.ps1 -InstallSystemDependencies
+```
+
+BAT/PowerShell 脚本不写入仓库或全局 `mise` 配置，因此以后可以一起删除。删除
+脚本不会卸载 Visual Studio Build Tools、WebView2 或 `mise` 已下载的工具版本；
+这些组件可能仍被其他项目使用，不应自动清理。
 
 ## 安装与静态验证（Windows 测试机）
 

@@ -15,6 +15,9 @@ $PnpmTool = "npm:pnpm@11.17.0"
 $RustToolchain = "stable-x86_64-pc-windows-msvc"
 $WebView2ClientId = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 $WebView2BootstrapperUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+$VsCodeSigningPcaUrl = "https://www.microsoft.com/pkiops/certs/Microsoft%20Windows%20Code%20Signing%20PCA%202024.crt"
+$VsCodeSigningPcaSha256 = "FE229EFC927F6D77B738896752A21803A59736BAA17BF5BE9A50C72E219CBCD2"
+$VsCodeSigningPcaThumbprint = "D30F05F637E605239C0070D1EA9860D434AC2A94"
 
 function Write-Step {
     param([Parameter(Mandatory = $true)][string]$Message)
@@ -77,6 +80,49 @@ function Get-VsCppInstallationPath {
     return (($installationPath | Select-Object -Last 1) | Out-String).Trim()
 }
 
+function Test-VsCodeSigningPca {
+    $certificatePath = "Cert:\LocalMachine\CA\$VsCodeSigningPcaThumbprint"
+    $certificate = Get-Item -LiteralPath $certificatePath -ErrorAction SilentlyContinue
+
+    return (
+        $null -ne $certificate -and
+        $certificate.Subject -match "CN=Microsoft Windows Code Signing PCA 2024"
+    )
+}
+
+function Install-VsCodeSigningPca {
+    $certificatePath = Join-Path ([IO.Path]::GetTempPath()) "Microsoft-Windows-Code-Signing-PCA-2024.crt"
+
+    try {
+        Write-Step "Download the Microsoft Windows Code Signing PCA 2024 certificate"
+        Invoke-WebRequest -Uri $VsCodeSigningPcaUrl -OutFile $certificatePath
+
+        $fileHash = (Get-FileHash -LiteralPath $certificatePath -Algorithm SHA256).Hash
+        $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificatePath)
+        if (
+            $fileHash -ne $VsCodeSigningPcaSha256 -or
+            $certificate.Thumbprint -ne $VsCodeSigningPcaThumbprint -or
+            $certificate.Subject -notmatch "CN=Microsoft Windows Code Signing PCA 2024"
+        ) {
+            throw "The downloaded Visual Studio code-signing certificate failed validation."
+        }
+
+        Invoke-CheckedCommand `
+            -Label "Trust the Microsoft Windows Code Signing PCA 2024 certificate" `
+            -Executable "certutil.exe" `
+            -Arguments @("-addstore", "CA", $certificatePath)
+
+        if (-not (Test-VsCodeSigningPca)) {
+            throw "The Visual Studio code-signing certificate was not found after import."
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $certificatePath) {
+            Remove-Item -LiteralPath $certificatePath -Force
+        }
+    }
+}
+
 function Install-VsCppBuildTools {
     $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
     if ($null -eq $winget) {
@@ -91,6 +137,7 @@ function Install-VsCppBuildTools {
             "install",
             "--id", "Microsoft.VisualStudio.2022.BuildTools",
             "--exact",
+            "--source", "winget",
             "--override", $override,
             "--accept-package-agreements",
             "--accept-source-agreements"
@@ -198,6 +245,10 @@ try {
     if ([string]::IsNullOrWhiteSpace($vsInstallationPath)) {
         if (-not $InstallSystemDependencies) {
             throw "Visual Studio C++ Build Tools were not detected. Re-run with -InstallSystemDependencies."
+        }
+
+        if (-not (Test-VsCodeSigningPca)) {
+            Install-VsCodeSigningPca
         }
 
         Install-VsCppBuildTools
